@@ -1,22 +1,32 @@
 {
-  "name": "repoforge",
-  "displayName": "RepoForge",
-  "description": "RepoForge AI - Generate and apply code scaffolds",
+  "name": "gitup",
+  "displayName": "GitUp",
+  "description": "GitUp - Generate and apply code scaffolds",
   "version": "0.0.1",
   "engines": {
-    "vscode": "^1.90.0"
+    "vscode": "^1.109.0"
   },
   "main": "./dist/extension.js",
   "activationEvents": [
-    "onCommand:repoforge.open"
+    "onCommand:gitup.open"
   ],
   "contributes": {
     "commands": [
       {
-        "command": "repoforge.open",
-        "title": "RepoForge: Open"
+        "command": "gitup.open",
+        "title": "GitUp: Open"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "GitUp",
+      "properties": {
+        "gitup.nodeVersion": {
+          "type": "string",
+          "default": "",
+          "description": "Preferred Node.js version to use when generating scaffolds (fallback if nvm is unavailable)."
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run build",
@@ -24,16 +34,21 @@
     "watch": "node esbuild.js --watch",
     "package": "vsce package",
     "build": "npm run compile",
-    "test": "vitest run"
+    "test": "vitest run --coverage",
+    "lint": "eslint \"src/**/*.ts\" --max-warnings 0",
+    "lint:fix": "eslint \"src/**/*.ts\" --fix",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@repoforge/shared": "workspace:*"
+    "@gitup/shared": "workspace:*"
   },
   "devDependencies": {
-    "@types/vscode": "^1.90.0",
-    "@types/node": "20.x",
-    "typescript": "^5.3.3",
-    "vsce": "^2.15.0",
-    "esbuild": "^0.20.0"
+    "@types/node": "~25.2.1",
+    "@types/vscode": "^1.109.0",
+    "esbuild": "^0.27.2",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18",
+    "@vitest/coverage-v8": "^4.0.18",
+    "@vscode/vsce": "^2.15.0"
   }
 }

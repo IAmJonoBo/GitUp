@@ -1,0 +1,23 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:base",
+    ":dependencyDashboard",
+    "group:monorepos",
+    "schedule:weekly",
+    ":maintainLockFilesWeekly"
+  ],
+  "labels": ["dependencies"],
+  "rangeStrategy": "bump",
+  "timezone": "UTC",
+  "packageRules": [
+    {
+      "matchManagers": ["pnpm"],
+      "groupName": "pnpm"
+    },
+    {
+      "matchDepTypes": ["devDependencies"],
+      "groupName": "dev dependencies"
+    }
+  ]
+}

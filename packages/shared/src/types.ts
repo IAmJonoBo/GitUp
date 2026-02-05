@@ -15,6 +15,14 @@ export enum Language {
 
 export type AppMode = "landing" | "wizard" | "doctor";
 
+export type NodeVersionSource = "nvm" | "setting" | "recommended" | "unknown";
+
+export interface NodeVersionInfo {
+  detectedVersion?: string;
+  recommendedVersion?: string;
+  source: NodeVersionSource;
+}
+
 export interface Recipe {
   id: string;
   name: string;
@@ -27,13 +35,7 @@ export interface TechStackOption {
   id: string;
   name: string;
   description: string;
-  category:
-    | "frontend"
-    | "backend"
-    | "database"
-    | "styling"
-    | "testing"
-    | "devtools";
+  category: "frontend" | "backend" | "database" | "styling" | "testing" | "devtools";
   iconClass?: string; // devicon class
   recommendedFor?: Language[];
   tags?: string[];
@@ -53,6 +55,7 @@ export interface WizardState {
   techStack: {
     language: Language;
     packageManager: string; // New field
+    nodeVersion?: string;
     frameworks: string[];
     tools: string[];
   };
@@ -66,9 +69,13 @@ export interface WizardState {
     ci: boolean;
     docker: boolean;
     docs: boolean;
+    tests: boolean;
     linting: boolean;
+    formatting: boolean;
     dependabot: boolean;
     husky: boolean; // git hooks
+    release: boolean;
+    securityDocs: boolean;
   };
 }
 

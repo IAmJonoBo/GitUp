@@ -1,12 +1,7 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import JSZip from "jszip";
 import { SidebarItem } from "./components/ui/Layouts";
-import {
-  StepBasics,
-  StepStack,
-  StepGovernance,
-  StepAutomation,
-} from "./components/Steps";
+import { StepBasics, StepStack, StepGovernance, StepAutomation } from "./components/Steps";
 import { RepoDoctor } from "./components/RepoDoctor";
 import {
   WizardState,
@@ -16,13 +11,15 @@ import {
   AppMode,
   ValidationResult,
   SecurityScanResult,
-} from "@repoforge/shared";
+  GenerationResponse,
+  NodeVersionInfo,
+  RECOMMENDED_NODE_VERSION,
+} from "@gitup/shared";
 import { hostBridge } from "./transport/hostBridge";
 import {
   ChevronRight,
   ChevronLeft,
   Loader2,
-  Download,
   FileText,
   Code,
   Terminal,
@@ -47,6 +44,7 @@ const INITIAL_STATE: WizardState = {
   techStack: {
     language: Language.TYPESCRIPT,
     packageManager: "",
+    nodeVersion: "",
     frameworks: [],
     tools: [],
   },
@@ -60,11 +58,20 @@ const INITIAL_STATE: WizardState = {
     ci: true,
     docker: false,
     docs: false,
+    tests: true,
     linting: true,
+    formatting: true,
     dependabot: true,
     husky: false,
+    release: false,
+    securityDocs: true,
   },
 };
+
+type UpdateNestedState = <K extends keyof WizardState>(
+  category: K,
+  updates: WizardState[K],
+) => void;
 
 const App: React.FC = () => {
   const [mode, setMode] = useState<AppMode>("landing");
@@ -74,27 +81,52 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [generatedFiles, setGeneratedFiles] = useState<GeneratedFile[]>([]);
   const [selectedFile, setSelectedFile] = useState<GeneratedFile | null>(null);
-  const [validationResult, setValidationResult] =
-    useState<ValidationResult | null>(null);
-  const [securityScan, setSecurityScan] = useState<SecurityScanResult | null>(
-    null,
-  );
+  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
+  const [securityScan, setSecurityScan] = useState<SecurityScanResult | null>(null);
+  const [nodeVersionInfo, setNodeVersionInfo] = useState<NodeVersionInfo | null>(null);
   const [allowDownloadWithErrors, setAllowDownloadWithErrors] = useState(false);
-  const [cooldownUntil, setCooldownUntil] = useState<number>(0);
-
-  const MAX_REPAIR_ATTEMPTS = 2;
+  const [isCooldownActive, setIsCooldownActive] = useState(false);
   const COOLDOWN_MS = 4000;
 
   const updateState = (updates: Partial<WizardState>) => {
     setState((prev) => ({ ...prev, ...updates }));
   };
 
-  const updateNestedState = (category: keyof WizardState, updates: any) => {
+  const updateNestedState = useCallback<UpdateNestedState>((category, updates) => {
     setState((prev) => ({
       ...prev,
       [category]: updates,
     }));
-  };
+  }, []);
+
+  useEffect(() => {
+    const loadNodeVersion = async () => {
+      try {
+        const info = await hostBridge.rpc<NodeVersionInfo, { language: Language }>(
+          "GET_NODE_VERSION_INFO",
+          { language: state.techStack.language },
+        );
+        setNodeVersionInfo(info);
+
+        if (
+          (state.techStack.language === Language.TYPESCRIPT ||
+            state.techStack.language === Language.JAVASCRIPT) &&
+          !state.techStack.nodeVersion
+        ) {
+          const fallback =
+            info.detectedVersion || info.recommendedVersion || RECOMMENDED_NODE_VERSION;
+          setState((prev) => {
+            if (prev.techStack.nodeVersion) return prev;
+            return { ...prev, techStack: { ...prev.techStack, nodeVersion: fallback } };
+          });
+        }
+      } catch {
+        // Ignore when not running in VS Code.
+      }
+    };
+
+    loadNodeVersion();
+  }, [state.techStack.language, state.techStack.nodeVersion]);
 
   const nextStep = () => {
     if (state.step < 4) updateState({ step: state.step + 1 });
@@ -106,9 +138,9 @@ const App: React.FC = () => {
   };
 
   const handleGenerate = async () => {
-    if (Date.now() < cooldownUntil) return;
-    setCooldownUntil(Date.now() + COOLDOWN_MS);
-    setTimeout(() => setCooldownUntil(0), COOLDOWN_MS + 50);
+    if (isCooldownActive) return;
+    setIsCooldownActive(true);
+    setTimeout(() => setIsCooldownActive(false), COOLDOWN_MS + 50);
     setIsGenerating(true);
     setError(null);
     setValidationResult(null);
@@ -118,15 +150,20 @@ const App: React.FC = () => {
 
     try {
       setGenerationPhase("Constructing architecture...");
-      const result = await hostBridge.rpc('GENERATE_SCAFFOLD', state);
+      const result = await hostBridge.rpc<GenerationResponse, WizardState>(
+        "GENERATE_SCAFFOLD",
+        state,
+      );
 
       setGeneratedFiles(result.files);
       setSelectedFile(result.files[0] || null);
       setValidationResult(result.validation);
       setSecurityScan(result.security);
-    } catch (e: any) {
-      console.error(e);
-      setError(e.message || "An unexpected error occurred during generation.");
+    } catch (err) {
+      console.error(err);
+      const message =
+        err instanceof Error ? err.message : "An unexpected error occurred during generation.";
+      setError(message);
     } finally {
       setIsGenerating(false);
       setGenerationPhase("");
@@ -138,12 +175,7 @@ const App: React.FC = () => {
     // but we prefer Apply to Workspace in VS Code.
     // Use hostBridge to check if we are in VS Code? hostBridge handles it.
     if (generatedFiles.length === 0) return;
-    if (
-      validationResult &&
-      validationResult.errors.length > 0 &&
-      !allowDownloadWithErrors
-    )
-      return;
+    if (validationResult && validationResult.errors.length > 0 && !allowDownloadWithErrors) return;
 
     const zip = new JSZip();
 
@@ -176,8 +208,8 @@ const App: React.FC = () => {
           Forge or Fix?
         </h1>
         <p className="text-xl text-slate-400 max-w-xl mx-auto">
-          Bootstrap a new production-ready repository or diagnose an existing
-          one with AI-powered insights.
+          Bootstrap a new production-ready repository or diagnose an existing one with AI-powered
+          insights.
         </p>
       </div>
 
@@ -194,8 +226,8 @@ const App: React.FC = () => {
             </div>
             <h2 className="text-2xl font-bold text-white mb-2">Repo Forge</h2>
             <p className="text-slate-400 mb-6">
-              Start fresh. Create a comprehensive, best-practice repository
-              scaffold with CI/CD, linting, and more.
+              Start fresh. Create a comprehensive, best-practice repository scaffold with CI/CD,
+              linting, and more.
             </p>
             <div className="flex items-center text-brand-400 font-medium">
               Start New Project{" "}
@@ -219,8 +251,8 @@ const App: React.FC = () => {
             </div>
             <h2 className="text-2xl font-bold text-white mb-2">Repo Doctor</h2>
             <p className="text-slate-400 mb-6">
-              Audit existing configs. Get an AI health check on your manifest
-              files and security posture.
+              Audit existing configs. Get an AI health check on your manifest files and security
+              posture.
             </p>
             <div className="flex items-center text-red-400 font-medium">
               Run Diagnostics{" "}
@@ -238,37 +270,19 @@ const App: React.FC = () => {
   const renderContent = () => {
     switch (state.step) {
       case 1:
-        return (
-          <StepBasics
-            state={state}
-            updateState={updateState}
-            updateNestedState={updateNestedState}
-          />
-        );
+        return <StepBasics state={state} updateNestedState={updateNestedState} />;
       case 2:
         return (
           <StepStack
             state={state}
-            updateState={updateState}
             updateNestedState={updateNestedState}
+            nodeVersionInfo={nodeVersionInfo}
           />
         );
       case 3:
-        return (
-          <StepGovernance
-            state={state}
-            updateState={updateState}
-            updateNestedState={updateNestedState}
-          />
-        );
+        return <StepGovernance state={state} updateNestedState={updateNestedState} />;
       case 4:
-        return (
-          <StepAutomation
-            state={state}
-            updateState={updateState}
-            updateNestedState={updateNestedState}
-          />
-        );
+        return <StepAutomation state={state} updateNestedState={updateNestedState} />;
       case 5:
         return renderResults();
       default:
@@ -282,14 +296,9 @@ const App: React.FC = () => {
         <div className="flex flex-col items-center justify-center h-full text-slate-400 animate-fade-in text-center p-8">
           <div className="relative mb-8">
             <div className="absolute inset-0 bg-brand-500 blur-xl opacity-20 rounded-full animate-pulse"></div>
-            <Loader2
-              className="animate-spin text-brand-400 relative z-10"
-              size={64}
-            />
+            <Loader2 className="animate-spin text-brand-400 relative z-10" size={64} />
           </div>
-          <h3 className="text-2xl text-white font-bold mb-2 tracking-tight">
-            Forging Repository
-          </h3>
+          <h3 className="text-2xl text-white font-bold mb-2 tracking-tight">Forging Repository</h3>
           <p className="max-w-md mx-auto text-slate-400">{generationPhase}</p>
           <div className="mt-4 flex flex-col gap-2 text-sm text-slate-500 font-mono">
             <span className="animate-slide-up" style={{ animationDelay: "0s" }}>
@@ -312,9 +321,7 @@ const App: React.FC = () => {
           <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-6">
             <ShieldAlert size={32} className="text-red-500" />
           </div>
-          <h3 className="text-xl text-white font-bold mb-2">
-            Generation Blocked
-          </h3>
+          <h3 className="text-xl text-white font-bold mb-2">Generation Blocked</h3>
           <p className="text-red-400 max-w-md mx-auto whitespace-pre-line mb-6 border border-red-500/20 bg-red-500/5 p-4 rounded-lg font-mono text-sm">
             {error}
           </p>
@@ -336,12 +343,10 @@ const App: React.FC = () => {
     return (
       <div className="flex h-full gap-4 animate-fade-in overflow-hidden pb-20">
         {/* Validation & Security Summary */}
-        {(validationResult ||
-          (securityScan && securityScan.warnings.length > 0)) && (
+        {(validationResult || (securityScan && securityScan.warnings.length > 0)) && (
           <div className="absolute top-16 right-6 left-6 z-10 space-y-3">
             {validationResult &&
-              (validationResult.errors.length > 0 ||
-                validationResult.warnings.length > 0) && (
+              (validationResult.errors.length > 0 || validationResult.warnings.length > 0) && (
                 <div
                   className={`border rounded-xl p-4 text-sm ${validationResult.errors.length > 0 ? "border-red-500/30 bg-red-500/5 text-red-300" : "border-yellow-500/30 bg-yellow-500/5 text-yellow-300"}`}
                 >
@@ -362,9 +367,7 @@ const App: React.FC = () => {
               )}
             {securityScan && securityScan.warnings.length > 0 && (
               <div className="border rounded-xl p-4 text-sm border-yellow-500/30 bg-yellow-500/5 text-yellow-300">
-                <div className="font-semibold mb-2">
-                  Security warnings detected
-                </div>
+                <div className="font-semibold mb-2">Security warnings detected</div>
                 <ul className="list-disc pl-5 space-y-1">
                   {securityScan.warnings.map((warn, idx) => (
                     <li key={`sec-${idx}`}>
@@ -379,9 +382,7 @@ const App: React.FC = () => {
         {/* File Tree */}
         <div className="w-1/3 bg-slate-900/50 rounded-xl border border-slate-700/50 flex flex-col overflow-hidden shadow-2xl">
           <div className="p-3 border-b border-slate-700/50 bg-slate-900/80 backdrop-blur flex justify-between items-center">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-              Explorer
-            </h3>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Explorer</h3>
             <span className="text-[10px] bg-slate-800 text-slate-500 px-2 py-0.5 rounded-full">
               {generatedFiles.length} files
             </span>
@@ -399,11 +400,7 @@ const App: React.FC = () => {
               >
                 <FileText
                   size={14}
-                  className={
-                    selectedFile?.path === file.path
-                      ? "text-brand-400"
-                      : "text-slate-600"
-                  }
+                  className={selectedFile?.path === file.path ? "text-brand-400" : "text-slate-600"}
                 />
                 {file.path}
               </button>
@@ -419,9 +416,7 @@ const App: React.FC = () => {
               <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex gap-2">
                 <button
                   className="bg-slate-800 text-xs text-slate-300 px-3 py-1.5 rounded-md border border-slate-700 hover:bg-slate-700 hover:text-white transition-colors shadow-lg"
-                  onClick={() =>
-                    navigator.clipboard.writeText(selectedFile.content)
-                  }
+                  onClick={() => navigator.clipboard.writeText(selectedFile.content)}
                 >
                   Copy
                 </button>
@@ -481,9 +476,7 @@ const App: React.FC = () => {
         />
 
         <div className="mt-auto p-4 bg-gradient-to-br from-slate-900 to-slate-900/50 rounded-xl border border-slate-800">
-          <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-2">
-            Powered by
-          </p>
+          <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-2">Powered by</p>
           <div className="flex items-center gap-2 text-slate-200 font-semibold">
             <Sparkles size={16} className="text-brand-400" /> Gemini 1.5
           </div>
@@ -515,7 +508,7 @@ const App: React.FC = () => {
             <div className="pointer-events-auto">
               <button
                 onClick={nextStep}
-                disabled={Date.now() < cooldownUntil}
+                disabled={isCooldownActive}
                 className={`
                                     px-8 py-3 rounded-lg font-bold text-white shadow-lg shadow-brand-500/20 transition-all flex items-center gap-2
                                     ${
@@ -559,31 +552,23 @@ const App: React.FC = () => {
                   <input
                     type="checkbox"
                     checked={allowDownloadWithErrors}
-                    onChange={(e) =>
-                      setAllowDownloadWithErrors(e.target.checked)
-                    }
+                    onChange={(e) => setAllowDownloadWithErrors(e.target.checked)}
                   />
                   I understand this download contains validation errors
                 </label>
               )}
               <button
                 onClick={handleDownloadZip}
-                disabled={
-                  validationResult?.errors.length
-                    ? !allowDownloadWithErrors
-                    : false
-                }
+                disabled={validationResult?.errors.length ? !allowDownloadWithErrors : false}
                 className={`px-6 py-3 rounded-lg font-bold text-slate-900 transition-colors flex items-center gap-2 shadow-lg shadow-brand-500/20 hover:scale-105 ${validationResult?.errors.length ? "bg-slate-700 text-slate-300 cursor-not-allowed" : "bg-brand-400 hover:bg-brand-300"}`}
               >
                 <Archive size={18} />{" "}
-                {validationResult?.errors.length
-                  ? "Download Blocked"
-                  : "Download ZIP"}
+                {validationResult?.errors.length ? "Download Blocked" : "Download ZIP"}
               </button>
 
-               <button
+              <button
                 onClick={async () => {
-                    await hostBridge.rpc('APPLY_TO_WORKSPACE', generatedFiles);
+                  await hostBridge.rpc("APPLY_TO_WORKSPACE", generatedFiles);
                 }}
                 disabled={!!validationResult?.errors.length}
                 className={`px-6 py-3 rounded-lg font-bold text-slate-900 transition-colors flex items-center gap-2 shadow-lg shadow-brand-500/20 hover:scale-105 ${validationResult?.errors.length ? "bg-slate-700 text-slate-300 cursor-not-allowed" : "bg-green-400 hover:bg-green-300"}`}
@@ -622,7 +607,7 @@ const App: React.FC = () => {
             className="font-medium text-slate-400 text-sm flex items-center gap-2 hover:text-white transition-colors"
           >
             <Terminal size={16} className="text-brand-500" />
-            <span className="text-slate-200">RepoForge AI</span>
+            <span className="text-slate-200">GitUp</span>
           </button>
         </div>
 

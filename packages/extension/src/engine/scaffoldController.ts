@@ -1,5 +1,19 @@
-import { LmClient } from './lmClient';
-import { WizardState, validateScaffold, scanForDangerousContent, GenerationResponse } from '@repoforge/shared';
+import { LmClient } from "./lmClient";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import * as vscode from "vscode";
+import {
+  WizardState,
+  GenerationResponse,
+  buildBaselineScaffold,
+  mergeScaffolds,
+  runGenerationPipeline,
+  Language,
+  NodeVersionInfo,
+  RECOMMENDED_NODE_VERSION,
+} from "@gitup/shared";
+
+const execFileAsync = promisify(execFile);
 
 // Define result types locally if not exported from shared yet, or verify they are exported.
 // Assuming GenerationResult is expected structure.
@@ -9,6 +23,82 @@ export class ScaffoldController {
 
   constructor() {
     this.lm = new LmClient();
+  }
+
+  private normalizeNodeVersion(value?: string | null): string | null {
+    if (!value) return null;
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    const match = trimmed.match(/\d+(?:\.\d+){0,2}/);
+    return match ? match[0] : null;
+  }
+
+  private getRecommendedNodeVersion(language: Language): string | null {
+    return language === Language.TYPESCRIPT || language === Language.JAVASCRIPT
+      ? RECOMMENDED_NODE_VERSION
+      : null;
+  }
+
+  private getConfiguredNodeVersion(): string | null {
+    const configured = vscode.workspace.getConfiguration("gitup").get<string>("nodeVersion");
+    return this.normalizeNodeVersion(configured || null);
+  }
+
+  private async getNvmNodeVersion(): Promise<string | null> {
+    const shell = process.env.SHELL || "/bin/zsh";
+    try {
+      const { stdout } = await execFileAsync(shell, ["-lc", "nvm current"], {
+        timeout: 2000,
+      });
+      const value = stdout.trim();
+      if (!value || value === "system") return null;
+      return this.normalizeNodeVersion(value);
+    } catch {
+      return null;
+    }
+  }
+
+  public async getNodeVersionInfo(language: Language): Promise<NodeVersionInfo> {
+    const recommended = this.getRecommendedNodeVersion(language) || undefined;
+    const detected = await this.getNvmNodeVersion();
+    if (detected) {
+      return { detectedVersion: detected, recommendedVersion: recommended, source: "nvm" };
+    }
+
+    const configured = this.getConfiguredNodeVersion();
+    if (configured) {
+      return { detectedVersion: configured, recommendedVersion: recommended, source: "setting" };
+    }
+
+    return {
+      detectedVersion: undefined,
+      recommendedVersion: recommended,
+      source: recommended ? "recommended" : "unknown",
+    };
+  }
+
+  private async ensureNodeVersion(state: WizardState): Promise<WizardState> {
+    if (
+      state.techStack.language !== Language.TYPESCRIPT &&
+      state.techStack.language !== Language.JAVASCRIPT
+    ) {
+      return state;
+    }
+
+    const provided = this.normalizeNodeVersion(state.techStack.nodeVersion || null);
+    if (provided) {
+      return {
+        ...state,
+        techStack: { ...state.techStack, nodeVersion: provided },
+      };
+    }
+
+    const info = await this.getNodeVersionInfo(state.techStack.language);
+    const fallback = info.detectedVersion || info.recommendedVersion || RECOMMENDED_NODE_VERSION;
+    return {
+      ...state,
+      techStack: { ...state.techStack, nodeVersion: fallback },
+    };
   }
 
   public async suggestStack(state: WizardState): Promise<string> {
@@ -26,19 +116,27 @@ Return a short paragraph (plain text) describing the recommendation.`;
 
     // Quick hack for text:
     const schema = `JSON with a single key "suggestion" containing the text string.`;
-    const res = await this.lm.generateJson<{suggestion: string}>(prompt, schema);
+    const res = await this.lm.generateJson<{ suggestion: string }>(prompt, schema);
     return res.suggestion;
   }
 
   public async generateScaffold(state: WizardState): Promise<GenerationResponse> {
+    const resolvedState = await this.ensureNodeVersion(state);
     // 1. Construct detailed prompt from state
     const prompt = `Generate a project scaffold for:
-Name: ${state.projectDetails.name}
-Type: ${state.projectDetails.type}
-Language: ${state.techStack.language}
-Description: ${state.projectDetails.description}
-Frameworks: ${state.techStack.frameworks.join(', ')}
-Features: ${JSON.stringify(state.automation)}
+Name: ${resolvedState.projectDetails.name}
+Type: ${resolvedState.projectDetails.type}
+Language: ${resolvedState.techStack.language}
+Description: ${resolvedState.projectDetails.description}
+Frameworks: ${resolvedState.techStack.frameworks.join(", ")}
+Features: ${JSON.stringify(resolvedState.automation)}
+
+  Do NOT generate standard repo files that are managed separately:
+  - README.md, LICENSE, SECURITY.md, CHANGELOG.md
+  - .github/workflows/*, .github/dependabot.yml, .github/ISSUE_TEMPLATE/*
+  - CONTRIBUTING.md, CODE_OF_CONDUCT.md, .editorconfig, .prettierrc.json
+
+  Focus on application code, config, and framework-specific files only.
 
 Return a list of files with paths and content.
 `;
@@ -51,33 +149,46 @@ Return a list of files with paths and content.
 }
 `;
 
-    // 2. Call LM
-    let result = await this.lm.generateJson<{files: {path: string, content: string}[]}>(prompt, schema);
+    const baselineFiles = buildBaselineScaffold(resolvedState);
 
-    // 3. Validate
-    let issues = validateScaffold(result.files, state);
-    let security = scanForDangerousContent(result.files);
+    const requestGenerate = async () => {
+      const result = await this.lm.generateJson<{
+        files: { path: string; content: string }[];
+      }>(prompt, schema);
+      const files = mergeScaffolds(result.files, baselineFiles);
+      return {
+        files,
+        validation: { valid: true, errors: [], warnings: [] },
+        security: { safe: true, blocked: [], warnings: [] },
+      };
+    };
 
-    // 4. Repair if needed (max 2 loops)
-    let attempts = 0;
-    while ((issues.errors.length > 0 || security.blocked.length > 0) && attempts < 2) {
-       attempts++;
-       // Request repair
-       const repairPrompt = `The generated scaffold has issues:
-Errors: ${JSON.stringify(issues.errors)}
-Security: ${JSON.stringify(security.blocked)}
+    const requestRepair = async (_state: WizardState, _files: unknown, errors: string[]) => {
+      const repairPrompt = `The generated scaffold has issues:
+Errors: ${JSON.stringify(errors)}
 
 Please regenerate the problematic files to fix these issues. Return ALL files including unchanged ones (concise).`;
 
-       result = await this.lm.generateJson<{files: {path: string, content: string}[]}>(repairPrompt, schema);
-       issues = validateScaffold(result.files, state);
-       security = scanForDangerousContent(result.files);
-    }
+      const result = await this.lm.generateJson<{
+        files: { path: string; content: string }[];
+      }>(repairPrompt, schema);
+      const files = mergeScaffolds(result.files, baselineFiles);
+      return {
+        files,
+        validation: { valid: true, errors: [], warnings: [] },
+        security: { safe: true, blocked: [], warnings: [] },
+      };
+    };
+
+    const pipeline = await runGenerationPipeline(resolvedState, {
+      requestGenerate,
+      requestRepair,
+    });
 
     return {
-        files: result.files,
-        validation: issues,
-        security: security
+      files: pipeline.files,
+      validation: pipeline.validation,
+      security: pipeline.security,
     };
   }
 }
