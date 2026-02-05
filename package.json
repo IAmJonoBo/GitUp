@@ -1,0 +1,16 @@
+{
+  "name": "repoforge-monorepo",
+  "private": true,
+  "scripts": {
+    "build": "pnpm -r run build",
+    "test": "pnpm -r run test",
+    "package": "pnpm -r run package",
+    "lint": "pnpm -r run lint"
+  },
+  "workspaces": [
+    "packages/*"
+  ],
+  "devDependencies": {
+    "vsce": "^2.15.0"
+  }
+}

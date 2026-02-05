@@ -1,0 +1,39 @@
+{
+  "name": "repoforge",
+  "displayName": "RepoForge",
+  "description": "RepoForge AI - Generate and apply code scaffolds",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onCommand:repoforge.open"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "repoforge.open",
+        "title": "RepoForge: Open"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "compile": "node esbuild.js",
+    "watch": "node esbuild.js --watch",
+    "package": "vsce package",
+    "build": "npm run compile",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@repoforge/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.90.0",
+    "@types/node": "20.x",
+    "typescript": "^5.3.3",
+    "vsce": "^2.15.0",
+    "esbuild": "^0.20.0"
+  }
+}
