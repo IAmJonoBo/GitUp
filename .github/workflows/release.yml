@@ -4,7 +4,9 @@ on:
   workflow_dispatch:
   push:
     tags:
-      - "v*"
+      - v*
+
+permissions: read-all
 
 jobs:
   package:
@@ -28,14 +30,15 @@ jobs:
       - name: Package VSIX
         run: pnpm --filter gitup package
       - name: Capture VSIX path
-        run: echo "VSIX_PATH=$(ls packages/extension/*.vsix | head -n 1)" >> $GITHUB_ENV
+        id: capture_vsix
+        run: echo "vsix_path=$(ls packages/extension/*.vsix | head -n 1)" >> "$GITHUB_OUTPUT"
       - name: Upload VSIX artifact
         uses: actions/upload-artifact@v4
         with:
           name: gitup-vsix
-          path: ${{ env.VSIX_PATH }}
+          path: ${{ steps.capture_vsix.outputs.vsix_path }}
       - name: Create GitHub release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: ${{ env.VSIX_PATH }}
+          files: ${{ steps.capture_vsix.outputs.vsix_path }}

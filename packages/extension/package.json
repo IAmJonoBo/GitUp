@@ -7,9 +7,6 @@
     "vscode": "^1.109.0"
   },
   "main": "./dist/extension.js",
-  "activationEvents": [
-    "onCommand:gitup.open"
-  ],
   "contributes": {
     "commands": [
       {
