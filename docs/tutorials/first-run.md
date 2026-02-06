@@ -10,8 +10,8 @@ This tutorial gets the project running locally.
 ## Steps
 
 1. Install dependencies: `pnpm install`
-2. Copy [.env.example](../../.env.example) to `.env` and set `GEMINI_API_KEY`.
-3. Start the API server: `pnpm dev:server`
-4. Start the web app: `pnpm dev:webview`
+2. Start the web app: `pnpm --filter gitup-webview dev`
+3. Open the workspace in VS Code and launch the extension (F5).
+4. Run the `GitUp: Open` command to start the webview.
 
-The web app proxies `/api/*` to the local server.
+The standalone web app renders the UI only. Generation runs inside the VS Code extension.

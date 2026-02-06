@@ -6,6 +6,7 @@ import {
   Language,
   NodeVersionInfo,
   RECOMMENDED_NODE_VERSION,
+  ModelProvider,
 } from "@gitup/shared";
 import {
   PROJECT_TYPES,
@@ -16,6 +17,7 @@ import {
   CODES_OF_CONDUCT,
   PACKAGE_MANAGERS,
   RECIPES,
+  MODEL_PROVIDERS,
 } from "@gitup/shared";
 import { StepContainer, Tooltip } from "./ui/Layouts";
 import { hostBridge } from "../transport/hostBridge";
@@ -42,6 +44,7 @@ import {
 
 interface StepProps {
   state: WizardState;
+  updateState: (updates: Partial<WizardState>) => void;
   updateNestedState: <K extends keyof WizardState>(category: K, updates: WizardState[K]) => void;
   nodeVersionInfo?: NodeVersionInfo | null;
 }
@@ -252,11 +255,22 @@ export const StepBasics: React.FC<StepProps> = ({ state, updateNestedState }) =>
 };
 
 // --- Step 2: Tech Stack ---
-export const StepStack: React.FC<StepProps> = ({ state, updateNestedState, nodeVersionInfo }) => {
+export const StepStack: React.FC<StepProps> = ({
+  state,
+  updateState,
+  updateNestedState,
+  nodeVersionInfo,
+}) => {
   const [suggestion, setSuggestion] = useState<string>("");
   const [loadingSuggestion, setLoadingSuggestion] = useState(false);
 
   useEffect(() => {
+    if (state.modelProvider === ModelProvider.EXTERNAL) {
+      setSuggestion("");
+      setLoadingSuggestion(false);
+      return;
+    }
+
     if (state.techStack.language) {
       // Default package manager selection when language changes
       const defaultPkg = PACKAGE_MANAGERS[state.techStack.language]?.[0];
@@ -337,6 +351,8 @@ export const StepStack: React.FC<StepProps> = ({ state, updateNestedState, nodeV
   const recommendedNodeVersion = isNodeProject
     ? nodeVersionInfo?.recommendedVersion || RECOMMENDED_NODE_VERSION
     : "";
+  const providerLabel =
+    state.modelProvider === ModelProvider.EXTERNAL ? "External Provider" : "VS Code LM (Copilot)";
 
   return (
     <StepContainer
@@ -503,6 +519,50 @@ export const StepStack: React.FC<StepProps> = ({ state, updateNestedState, nodeV
           </div>
         )}
 
+        {/* Model Provider */}
+        <div className="space-y-3 animate-fade-in">
+          <Tooltip content="Select which model provider to use for generation.">
+            <h3 className="text-white font-medium flex items-center gap-2 cursor-help">
+              <Server size={18} /> Model Provider <Info size={14} className="text-slate-500" />
+            </h3>
+          </Tooltip>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {MODEL_PROVIDERS.map((provider) => {
+              const isActive = state.modelProvider === provider.id;
+              const isExternal = provider.id === ModelProvider.EXTERNAL;
+              return (
+                <button
+                  key={provider.id}
+                  onClick={() => updateState({ modelProvider: provider.id })}
+                  className={`p-4 rounded-xl border text-left transition-all ${
+                    isActive
+                      ? "bg-brand-500/10 border-brand-500"
+                      : "bg-slate-900 border-slate-700 hover:border-slate-600"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className={`font-medium ${isActive ? "text-white" : "text-slate-300"}`}>
+                      {provider.label}
+                    </span>
+                    {isExternal && (
+                      <span className="text-[10px] uppercase tracking-wider bg-amber-500/10 text-amber-300 px-2 py-0.5 rounded border border-amber-500/20">
+                        Requires server
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-500 mt-2">{provider.description}</p>
+                </button>
+              );
+            })}
+          </div>
+          {state.modelProvider === ModelProvider.EXTERNAL && (
+            <div className="text-xs text-amber-300/90 bg-amber-500/10 border border-amber-500/20 rounded-lg p-2">
+              External providers are not configured in this build. Generation will be disabled until
+              a server integration is added.
+            </div>
+          )}
+        </div>
+
         {/* AI Suggestion */}
         {(loadingSuggestion || suggestion) && (
           <div className="bg-slate-900/50 border border-indigo-500/30 rounded-xl p-4 animate-fade-in flex gap-4 items-start relative overflow-hidden group">
@@ -597,7 +657,7 @@ export const StepStack: React.FC<StepProps> = ({ state, updateNestedState, nodeV
               placeholder="Describe your project logic to get tailored starter code.&#10;Ex: 'A CLI tool that parses CSV files and converts them to JSON. Include a helper function for date formatting.'"
             />
             <div className="absolute bottom-3 right-3 text-xs text-slate-500 flex items-center gap-1 opacity-70">
-              <Sparkles size={12} /> Powered by Gemini
+              <Sparkles size={12} /> Powered by {providerLabel}
             </div>
           </div>
         </div>

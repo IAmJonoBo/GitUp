@@ -6,7 +6,7 @@ import {
   GenerationResponse,
 } from "../types";
 import { validateScaffold } from "./validationService";
-import { scanForDangerousContent } from "./securityService";
+import { PathValidationOptions, scanForDangerousContent } from "./securityService";
 
 export interface PipelineResult {
   files: GeneratedFile[];
@@ -22,6 +22,7 @@ export interface PipelineDeps {
     files: GeneratedFile[],
     errors: string[],
   ) => Promise<GenerationResponse>;
+  securityOptions?: PathValidationOptions;
 }
 
 export const runGenerationPipeline = async (
@@ -36,14 +37,12 @@ export const runGenerationPipeline = async (
   let files = response.files;
 
   let validation = validateScaffold(files, state);
-  let security = scanForDangerousContent(files);
+  let security = scanForDangerousContent(files, deps.securityOptions);
   if (!security.safe) {
     const details = security.blocked
       .map((b) => `${b.label} in ${b.file}:${b.line} → ${b.excerpt}`)
       .join("\n");
-    throw new Error(
-      `Security Policy Violation: Blocked dangerous content.\n${details}`,
-    );
+    throw new Error(`Security Policy Violation: Blocked dangerous content.\n${details}`);
   }
 
   while (!validation.valid && attempt < maxAttempts) {
@@ -52,14 +51,12 @@ export const runGenerationPipeline = async (
     response = await deps.requestRepair(state, files, validation.errors);
     files = response.files;
     validation = validateScaffold(files, state);
-    security = scanForDangerousContent(files);
+    security = scanForDangerousContent(files, deps.securityOptions);
     if (!security.safe) {
       const details = security.blocked
         .map((b) => `${b.label} in ${b.file}:${b.line} → ${b.excerpt}`)
         .join("\n");
-      throw new Error(
-        `Security Policy Violation: Blocked dangerous content.\n${details}`,
-      );
+      throw new Error(`Security Policy Violation: Blocked dangerous content.\n${details}`);
     }
   }
 

@@ -1,9 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { validateScaffold } from "../src/services/validationService";
-import { Language, ProjectType, WizardState } from "../src/types";
+import { Language, ModelProvider, ProjectType, WizardState } from "../src/types";
 
 const baseState: WizardState = {
   step: 4,
+  modelProvider: ModelProvider.VSCODE,
   projectDetails: {
     name: "test-app",
     description: "desc",

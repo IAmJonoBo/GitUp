@@ -14,6 +14,8 @@ import {
   GenerationResponse,
   NodeVersionInfo,
   RECOMMENDED_NODE_VERSION,
+  ModelProvider,
+  ExtensionSettings,
 } from "@gitup/shared";
 import { hostBridge } from "./transport/hostBridge";
 import {
@@ -32,6 +34,7 @@ import {
 
 const INITIAL_STATE: WizardState = {
   step: 1,
+  modelProvider: ModelProvider.VSCODE,
   projectDetails: {
     name: "my-new-repo",
     description: "",
@@ -88,8 +91,24 @@ const App: React.FC = () => {
   const [isCooldownActive, setIsCooldownActive] = useState(false);
   const COOLDOWN_MS = 4000;
 
+  const isExternalProvider = state.modelProvider === ModelProvider.EXTERNAL;
+  const providerLabel = isExternalProvider ? "External Provider" : "VS Code LM (Copilot)";
+
   const updateState = (updates: Partial<WizardState>) => {
     setState((prev) => ({ ...prev, ...updates }));
+  };
+
+  const updateStateAndPersist = (updates: Partial<WizardState>) => {
+    if (updates.modelProvider) {
+      hostBridge
+        .rpc<void, ExtensionSettings>("SET_SETTINGS", {
+          modelProvider: updates.modelProvider,
+        })
+        .catch(() => {
+          // Ignore when not running in VS Code.
+        });
+    }
+    updateState(updates);
   };
 
   const updateNestedState = useCallback<UpdateNestedState>((category, updates) => {
@@ -128,6 +147,22 @@ const App: React.FC = () => {
     loadNodeVersion();
   }, [state.techStack.language, state.techStack.nodeVersion]);
 
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const settings = await hostBridge.rpc<ExtensionSettings, undefined>(
+          "GET_SETTINGS",
+          undefined,
+        );
+        setState((prev) => ({ ...prev, modelProvider: settings.modelProvider }));
+      } catch {
+        // Ignore when not running in VS Code.
+      }
+    };
+
+    loadSettings();
+  }, []);
+
   const nextStep = () => {
     if (state.step < 4) updateState({ step: state.step + 1 });
     else handleGenerate();
@@ -138,6 +173,16 @@ const App: React.FC = () => {
   };
 
   const handleGenerate = async () => {
+    if (isExternalProvider) {
+      setGeneratedFiles([]);
+      setSelectedFile(null);
+      setValidationResult(null);
+      setSecurityScan(null);
+      setAllowDownloadWithErrors(false);
+      setError("External model providers require a server integration that is not configured.");
+      updateState({ step: 5 });
+      return;
+    }
     if (isCooldownActive) return;
     setIsCooldownActive(true);
     setTimeout(() => setIsCooldownActive(false), COOLDOWN_MS + 50);
@@ -270,19 +315,38 @@ const App: React.FC = () => {
   const renderContent = () => {
     switch (state.step) {
       case 1:
-        return <StepBasics state={state} updateNestedState={updateNestedState} />;
+        return (
+          <StepBasics
+            state={state}
+            updateState={updateStateAndPersist}
+            updateNestedState={updateNestedState}
+          />
+        );
       case 2:
         return (
           <StepStack
             state={state}
+            updateState={updateStateAndPersist}
             updateNestedState={updateNestedState}
             nodeVersionInfo={nodeVersionInfo}
           />
         );
       case 3:
-        return <StepGovernance state={state} updateNestedState={updateNestedState} />;
+        return (
+          <StepGovernance
+            state={state}
+            updateState={updateStateAndPersist}
+            updateNestedState={updateNestedState}
+          />
+        );
       case 4:
-        return <StepAutomation state={state} updateNestedState={updateNestedState} />;
+        return (
+          <StepAutomation
+            state={state}
+            updateState={updateStateAndPersist}
+            updateNestedState={updateNestedState}
+          />
+        );
       case 5:
         return renderResults();
       default:
@@ -478,7 +542,7 @@ const App: React.FC = () => {
         <div className="mt-auto p-4 bg-gradient-to-br from-slate-900 to-slate-900/50 rounded-xl border border-slate-800">
           <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-2">Powered by</p>
           <div className="flex items-center gap-2 text-slate-200 font-semibold">
-            <Sparkles size={16} className="text-brand-400" /> Gemini 1.5
+            <Sparkles size={16} className="text-brand-400" /> {providerLabel}
           </div>
         </div>
       </aside>
@@ -508,13 +572,18 @@ const App: React.FC = () => {
             <div className="pointer-events-auto">
               <button
                 onClick={nextStep}
-                disabled={isCooldownActive}
+                disabled={isCooldownActive || (state.step === 4 && isExternalProvider)}
                 className={`
                                     px-8 py-3 rounded-lg font-bold text-white shadow-lg shadow-brand-500/20 transition-all flex items-center gap-2
                                     ${
                                       state.step === 4
                                         ? "bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 hover:shadow-indigo-500/25"
                                         : "bg-brand-600 hover:bg-brand-500"
+                                    }
+                                    ${
+                                      isCooldownActive || (state.step === 4 && isExternalProvider)
+                                        ? "opacity-50 cursor-not-allowed"
+                                        : ""
                                     }
                                 `}
               >

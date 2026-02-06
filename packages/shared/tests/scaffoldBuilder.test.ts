@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { buildBaselineScaffold, mergeScaffolds } from "../src/services/scaffoldBuilder";
-import { Language, ProjectType, WizardState } from "../src/types";
+import { Language, ModelProvider, ProjectType, WizardState } from "../src/types";
 
 const baseState: WizardState = {
   step: 1,
+  modelProvider: ModelProvider.VSCODE,
   projectDetails: {
     name: "Example Repo",
     description: "Demo",

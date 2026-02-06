@@ -1,24 +1,33 @@
-import * as vscode from 'vscode';
+import * as vscode from "vscode";
+import { ModelProvider } from "@gitup/shared";
 
 export class LmClient {
   private model: vscode.LanguageModelChat | undefined;
+  private provider: ModelProvider = ModelProvider.VSCODE;
+
+  public setProvider(provider: ModelProvider) {
+    this.provider = provider;
+  }
 
   private async getModel(): Promise<vscode.LanguageModelChat> {
+    if (this.provider === ModelProvider.EXTERNAL) {
+      throw new Error("External model provider is not configured in this build.");
+    }
     if (this.model) {
       return this.model;
     }
     const models = await vscode.lm.selectChatModels({
-      vendor: 'copilot',
-      family: 'gpt-4'
+      vendor: "copilot",
+      family: "gpt-4",
     });
 
     // Fallback to any model if specific one not found
     if (models.length === 0) {
-        const anyModels = await vscode.lm.selectChatModels({});
-        if (anyModels.length > 0) {
-            this.model = anyModels[0];
-            return this.model;
-        }
+      const anyModels = await vscode.lm.selectChatModels({});
+      if (anyModels.length > 0) {
+        this.model = anyModels[0];
+        return this.model;
+      }
     }
 
     if (models.length > 0) {
@@ -40,19 +49,24 @@ Do not include markdown formatting (like \`\`\`json). Return raw JSON only.
 
 User Request: ${prompt}`;
 
-    const messages = [
-      vscode.LanguageModelChatMessage.User(fullPrompt)
-    ];
+    const messages = [vscode.LanguageModelChatMessage.User(fullPrompt)];
 
     try {
-      const response = await model.sendRequest(messages, {}, new vscode.CancellationTokenSource().token);
-      let text = '';
+      const response = await model.sendRequest(
+        messages,
+        {},
+        new vscode.CancellationTokenSource().token,
+      );
+      let text = "";
       for await (const fragment of response.text) {
         text += fragment;
       }
 
       // Cleanup code blocks if present
-      text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+      text = text
+        .replace(/```json/g, "")
+        .replace(/```/g, "")
+        .trim();
 
       return JSON.parse(text) as T;
     } catch (err) {
@@ -62,25 +76,34 @@ User Request: ${prompt}`;
     }
   }
 
-  private async repairJson<T>(originalPrompt: string, schemaHint: string, error: string): Promise<T> {
-     const model = await this.getModel();
-     const repairPrompt = `The previous JSON generation failed with error: ${error}.
+  private async repairJson<T>(
+    originalPrompt: string,
+    schemaHint: string,
+    error: string,
+  ): Promise<T> {
+    const model = await this.getModel();
+    const repairPrompt = `The previous JSON generation failed with error: ${error}.
 
 Please output the JSON again for the request, correcting the syntax.
 Schema: ${schemaHint}
 
 Original Request: ${originalPrompt}`;
 
-    const messages = [
-        vscode.LanguageModelChatMessage.User(repairPrompt)
-    ];
+    const messages = [vscode.LanguageModelChatMessage.User(repairPrompt)];
 
-    const response = await model.sendRequest(messages, {}, new vscode.CancellationTokenSource().token);
-      let text = '';
-      for await (const fragment of response.text) {
-        text += fragment;
-      }
-      text = text.replace(/```json/g, '').replace(/```/g, '').trim();
-      return JSON.parse(text) as T;
+    const response = await model.sendRequest(
+      messages,
+      {},
+      new vscode.CancellationTokenSource().token,
+    );
+    let text = "";
+    for await (const fragment of response.text) {
+      text += fragment;
+    }
+    text = text
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
+    return JSON.parse(text) as T;
   }
 }

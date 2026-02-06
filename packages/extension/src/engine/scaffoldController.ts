@@ -11,6 +11,8 @@ import {
   Language,
   NodeVersionInfo,
   RECOMMENDED_NODE_VERSION,
+  ModelProvider,
+  PathValidationOptions,
 } from "@gitup/shared";
 
 const execFileAsync = promisify(execFile);
@@ -101,7 +103,23 @@ export class ScaffoldController {
     };
   }
 
+  private resolveProvider(state: WizardState): ModelProvider {
+    return state.modelProvider || ModelProvider.VSCODE;
+  }
+
+  private getPathValidationOptions(): PathValidationOptions {
+    const settings = vscode.workspace.getConfiguration("gitup");
+    return {
+      allowedTopLevelDirs: settings.get<string[]>("pathAllowlist") || [],
+      extensionAllowlist:
+        (settings.get<Record<string, string[]>>("extensionAllowlist") as
+          | Record<string, string[]>
+          | undefined) || undefined,
+    };
+  }
+
   public async suggestStack(state: WizardState): Promise<string> {
+    this.lm.setProvider(this.resolveProvider(state));
     const prompt = `Analyze this project request:
 Description: ${state.projectDetails.description}
 Project Type: ${state.projectDetails.type}
@@ -121,6 +139,7 @@ Return a short paragraph (plain text) describing the recommendation.`;
   }
 
   public async generateScaffold(state: WizardState): Promise<GenerationResponse> {
+    this.lm.setProvider(this.resolveProvider(state));
     const resolvedState = await this.ensureNodeVersion(state);
     // 1. Construct detailed prompt from state
     const prompt = `Generate a project scaffold for:
@@ -183,6 +202,7 @@ Please regenerate the problematic files to fix these issues. Return ALL files in
     const pipeline = await runGenerationPipeline(resolvedState, {
       requestGenerate,
       requestRepair,
+      securityOptions: this.getPathValidationOptions(),
     });
 
     return {

@@ -2,7 +2,13 @@ import * as vscode from "vscode";
 import { GetNonce } from "../utils/nonce";
 import { ScaffoldController } from "../engine/scaffoldController";
 import { WorkspaceWriter } from "../engine/workspaceWriter";
-import { GeneratedFile, Language, WizardState } from "@gitup/shared";
+import {
+  ExtensionSettings,
+  GeneratedFile,
+  Language,
+  ModelProvider,
+  WizardState,
+} from "@gitup/shared";
 
 type WebviewMessage =
   | { id: string; type: "SUGGEST_STACK"; payload: WizardState }
@@ -10,7 +16,9 @@ type WebviewMessage =
   | { id: string; type: "GENERATE_SCAFFOLD"; payload: WizardState }
   | { id: string; type: "REPAIR_SCAFFOLD"; payload: WizardState }
   | { id: string; type: "PREVIEW_APPLY"; payload: GeneratedFile[] }
-  | { id: string; type: "APPLY_TO_WORKSPACE"; payload: GeneratedFile[] };
+  | { id: string; type: "APPLY_TO_WORKSPACE"; payload: GeneratedFile[] }
+  | { id: string; type: "GET_SETTINGS"; payload: undefined }
+  | { id: string; type: "SET_SETTINGS"; payload: ExtensionSettings };
 
 const isWebviewMessage = (value: unknown): value is WebviewMessage => {
   if (!value || typeof value !== "object") return false;
@@ -25,12 +33,14 @@ export class GitUpPanel {
   private _disposables: vscode.Disposable[] = [];
   private _scaffoldController: ScaffoldController;
   private _workspaceWriter: WorkspaceWriter;
+  private _outputChannel: vscode.OutputChannel;
 
   private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
     this._panel = panel;
     this._extensionUri = extensionUri;
     this._scaffoldController = new ScaffoldController();
     this._workspaceWriter = new WorkspaceWriter();
+    this._outputChannel = vscode.window.createOutputChannel("GitUp");
 
     this._update();
     this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
@@ -80,6 +90,7 @@ export class GitUpPanel {
   public dispose() {
     GitUpPanel.currentPanel = undefined;
     this._panel.dispose();
+    this._outputChannel.dispose();
     while (this._disposables.length) {
       const x = this._disposables.pop();
       if (x) {
@@ -127,8 +138,10 @@ export class GitUpPanel {
     console.log("Received message:", message);
     switch (message.type) {
       case "SUGGEST_STACK": {
+        this._outputChannel.appendLine("Suggesting tech stack...");
         const suggestions = await this._scaffoldController.suggestStack(message.payload);
         this._reply(message.id, true, suggestions);
+        this._outputChannel.appendLine("Stack suggestion completed.");
         break;
       }
       case "GET_NODE_VERSION_INFO": {
@@ -138,10 +151,17 @@ export class GitUpPanel {
       }
       case "GENERATE_SCAFFOLD": {
         try {
+          this._outputChannel.appendLine(
+            `Generating scaffold for ${message.payload.projectDetails.name} (${message.payload.techStack.language})...`,
+          );
           const scaffold = await this._scaffoldController.generateScaffold(message.payload);
           this._reply(message.id, true, scaffold);
+          this._outputChannel.appendLine(
+            `Generated ${scaffold.files.length} files. Validation: ${scaffold.validation.valid ? "ok" : "errors"}.`,
+          );
         } catch (e) {
           this._reply(message.id, false, undefined, String(e));
+          this._outputChannel.appendLine(`Generation failed: ${String(e)}`);
         }
         break;
       }
@@ -154,14 +174,59 @@ export class GitUpPanel {
         // TODO: Implement preview (maybe open diffs? or just rely on webview showing content)
         break;
       }
+      case "GET_SETTINGS": {
+        const config = vscode.workspace.getConfiguration("gitup");
+        const modelProvider =
+          (config.get<string>("modelProvider") as ModelProvider) || ModelProvider.VSCODE;
+        const pathAllowlist = config.get<string[]>("pathAllowlist") || [];
+        const extensionAllowlist =
+          (config.get<Record<string, string[]>>("extensionAllowlist") as
+            | Record<string, string[]>
+            | undefined) || undefined;
+        this._reply(message.id, true, {
+          modelProvider,
+          pathAllowlist,
+          extensionAllowlist,
+        } satisfies ExtensionSettings);
+        break;
+      }
+      case "SET_SETTINGS": {
+        const config = vscode.workspace.getConfiguration("gitup");
+        await config.update(
+          "modelProvider",
+          message.payload.modelProvider,
+          vscode.ConfigurationTarget.Workspace,
+        );
+        if (message.payload.pathAllowlist) {
+          await config.update(
+            "pathAllowlist",
+            message.payload.pathAllowlist,
+            vscode.ConfigurationTarget.Workspace,
+          );
+        }
+        if (message.payload.extensionAllowlist) {
+          await config.update(
+            "extensionAllowlist",
+            message.payload.extensionAllowlist,
+            vscode.ConfigurationTarget.Workspace,
+          );
+        }
+        this._reply(message.id, true);
+        break;
+      }
       case "APPLY_TO_WORKSPACE": {
         try {
+          this._outputChannel.appendLine(
+            `Applying ${message.payload.length} files to workspace...`,
+          );
           await this._workspaceWriter.applyToWorkspace(message.payload);
           this._reply(message.id, true);
           vscode.window.showInformationMessage("Scaffold applied successfully!");
+          this._outputChannel.appendLine("Workspace apply completed.");
         } catch (e) {
           this._reply(message.id, false, undefined, String(e));
           vscode.window.showErrorMessage(`Apply failed: ${e}`);
+          this._outputChannel.appendLine(`Apply failed: ${String(e)}`);
         }
         break;
       }

@@ -21,6 +21,28 @@
           "type": "string",
           "default": "",
           "description": "Preferred Node.js version to use when generating scaffolds (fallback if nvm is unavailable)."
+        },
+        "gitup.modelProvider": {
+          "type": "string",
+          "default": "vscode",
+          "enum": [
+            "vscode",
+            "external"
+          ],
+          "description": "Model provider to use for scaffold generation. 'external' requires a server integration."
+        },
+        "gitup.pathAllowlist": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "description": "Additional top-level path segments allowed for generated files."
+        },
+        "gitup.extensionAllowlist": {
+          "type": "object",
+          "default": {},
+          "description": "Per top-level directory extension allowlist override (e.g. { \"src\": [\".graphql\"] })."
         }
       }
     }

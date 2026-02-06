@@ -1,4 +1,4 @@
-import { Language, ProjectType, TechStackOption, Recipe } from "./types";
+import { Language, ModelProvider, ProjectType, TechStackOption, Recipe } from "./types";
 
 export const PROJECT_TYPES = Object.values(ProjectType);
 export const LANGUAGES = Object.values(Language);
@@ -28,6 +28,19 @@ export const LANGUAGE_ICONS: Record<Language, string> = {
 };
 
 export const RECOMMENDED_NODE_VERSION = "20";
+
+export const MODEL_PROVIDERS: Array<{ id: ModelProvider; label: string; description: string }> = [
+  {
+    id: ModelProvider.VSCODE,
+    label: "VS Code LM (Copilot)",
+    description: "Uses the VS Code language model for local generation.",
+  },
+  {
+    id: ModelProvider.EXTERNAL,
+    label: "External Provider",
+    description: "Requires a configured server integration (disabled by default).",
+  },
+];
 
 export const RECIPES: Recipe[] = [
   {

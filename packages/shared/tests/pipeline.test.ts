@@ -1,10 +1,11 @@
 import { describe, it, expect } from "vitest";
 import JSZip from "jszip";
 import { runGenerationPipeline } from "../src/services/generationPipeline";
-import { Language, ProjectType, WizardState } from "../src/types";
+import { Language, ModelProvider, ProjectType, WizardState } from "../src/types";
 
 const baseState: WizardState = {
   step: 4,
+  modelProvider: ModelProvider.VSCODE,
   projectDetails: {
     name: "pipeline-test",
     description: "desc",

@@ -13,6 +13,11 @@ export enum Language {
   RUST = "Rust",
 }
 
+export enum ModelProvider {
+  VSCODE = "vscode",
+  EXTERNAL = "external",
+}
+
 export type AppMode = "landing" | "wizard" | "doctor";
 
 export type NodeVersionSource = "nvm" | "setting" | "recommended" | "unknown";
@@ -43,6 +48,7 @@ export interface TechStackOption {
 
 export interface WizardState {
   step: number;
+  modelProvider: ModelProvider;
   projectDetails: {
     name: string;
     description: string;
@@ -122,4 +128,10 @@ export interface GenerationResponse {
   files: GeneratedFile[];
   validation: ValidationResult;
   security: SecurityScanResult;
+}
+
+export interface ExtensionSettings {
+  modelProvider: ModelProvider;
+  pathAllowlist?: string[];
+  extensionAllowlist?: Record<string, string[]>;
 }

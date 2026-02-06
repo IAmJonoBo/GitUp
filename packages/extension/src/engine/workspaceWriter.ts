@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { GeneratedFile } from "@gitup/shared";
+import { ExtensionSettings, GeneratedFile, validateFilePaths } from "@gitup/shared";
 
 // Type from shared might need to be imported or redefined if not exported
 // GeneratedFile is exported in types.ts
@@ -27,6 +27,25 @@ export class WorkspaceWriter {
   }
 
   public async applyToWorkspace(files: GeneratedFile[]): Promise<void> {
+    const settings = vscode.workspace.getConfiguration("gitup");
+    const pathAllowlist = settings.get<string[]>("pathAllowlist") || [];
+    const extensionAllowlist =
+      (settings.get<Record<string, string[]>>("extensionAllowlist") as
+        | Record<string, string[]>
+        | undefined) || undefined;
+    const validationOptions: ExtensionSettings = {
+      modelProvider: settings.get("modelProvider") || "vscode",
+      pathAllowlist,
+      extensionAllowlist,
+    };
+    const blockedPaths = validateFilePaths(files, {
+      allowedTopLevelDirs: validationOptions.pathAllowlist,
+      extensionAllowlist: validationOptions.extensionAllowlist,
+    });
+    if (blockedPaths.length > 0) {
+      const details = blockedPaths.map((issue) => `${issue.label} in ${issue.file}`).join("\n");
+      throw new Error(`Blocked unsafe file paths.\n${details}`);
+    }
     const workspaceFolders = vscode.workspace.workspaceFolders;
     if (!workspaceFolders) {
       throw new Error("No workspace folder open. Please open a folder to apply changes.");

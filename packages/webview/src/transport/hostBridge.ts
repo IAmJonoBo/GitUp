@@ -5,7 +5,9 @@ export type MessageType =
   | "GENERATE_SCAFFOLD"
   | "REPAIR_SCAFFOLD"
   | "PREVIEW_APPLY"
-  | "APPLY_TO_WORKSPACE";
+  | "APPLY_TO_WORKSPACE"
+  | "GET_SETTINGS"
+  | "SET_SETTINGS";
 
 interface RpcResponse {
   id: string;
