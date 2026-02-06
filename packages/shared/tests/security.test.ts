@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { scanForDangerousContent } from "../services/securityService";
+import { scanForDangerousContent } from "../src/services/securityService";
 
 const files = [
   {

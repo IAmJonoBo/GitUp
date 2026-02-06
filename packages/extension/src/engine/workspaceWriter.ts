@@ -1,11 +1,10 @@
-import * as vscode from 'vscode';
-import { GeneratedFile } from '@repoforge/shared';
+import * as vscode from "vscode";
+import { GeneratedFile } from "@gitup/shared";
 
 // Type from shared might need to be imported or redefined if not exported
 // GeneratedFile is exported in types.ts
 
 export class WorkspaceWriter {
-
   public async previewChanges(files: GeneratedFile[]) {
     // For preview, we can use a virtual document provider or just open a diff for the main file?
     // A full multi-file diff is hard in VS Code API without creating valid files.
@@ -52,29 +51,26 @@ export class WorkspaceWriter {
       // Wait, createFile + replace might conflict in one edit if file didn't exist?
       // Better to check existence.
       try {
-          await vscode.workspace.fs.stat(uri);
-          // Exists: replace content
-          // We need to know the entire range to replace.
-          const doc = await vscode.workspace.openTextDocument(uri);
-          const fullRange = new vscode.Range(
-             doc.positionAt(0),
-             doc.positionAt(doc.getText().length)
-          );
-           edit.replace(uri, fullRange, file.content);
-           // Remove createFile from edit for this file
+        await vscode.workspace.fs.stat(uri);
+        // Exists: replace content
+        // We need to know the entire range to replace.
+        const doc = await vscode.workspace.openTextDocument(uri);
+        const fullRange = new vscode.Range(doc.positionAt(0), doc.positionAt(doc.getText().length));
+        edit.replace(uri, fullRange, file.content);
+        // Remove createFile from edit for this file
       } catch {
-          // Doesn't exist: create
-          // For createFile, we can provide contents? No, initial content is not argument for createFile in WorkspaceEdit (only in some overrides, check API).
-          // vs code api: createFile(uri, options, metadata?)
-          // It creates empty file. Then we insert.
-          edit.createFile(uri, { overwrite: true });
-          edit.insert(uri, new vscode.Position(0, 0), file.content);
+        // Doesn't exist: create
+        // For createFile, we can provide contents? No, initial content is not argument for createFile in WorkspaceEdit (only in some overrides, check API).
+        // vs code api: createFile(uri, options, metadata?)
+        // It creates empty file. Then we insert.
+        edit.createFile(uri, { overwrite: true });
+        edit.insert(uri, new vscode.Position(0, 0), file.content);
       }
     }
 
     const applied = await vscode.workspace.applyEdit(edit);
     if (!applied) {
-        throw new Error("Failed to apply workspace edit.");
+      throw new Error("Failed to apply workspace edit.");
     }
   }
 }

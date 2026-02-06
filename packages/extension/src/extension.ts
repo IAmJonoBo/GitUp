@@ -1,13 +1,13 @@
-import * as vscode from 'vscode';
-import { RepoForgePanel } from './webview/panel';
+import * as vscode from "vscode";
+import { GitUpPanel } from "./webview/panel";
 
 export function activate(context: vscode.ExtensionContext) {
-  console.log('RepoForge is active');
+  console.log("GitUp is active");
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('repoforge.open', () => {
-      RepoForgePanel.createOrShow(context.extensionUri);
-    })
+    vscode.commands.registerCommand("gitup.open", () => {
+      GitUpPanel.createOrShow(context.extensionUri);
+    }),
   );
 }
 

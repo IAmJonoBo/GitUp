@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 // import { analyzeProjectManifest } from "../services/geminiService";
-import { AuditAnalysis, AuditIssue } from "@repoforge/shared";
+import { AuditAnalysis, AuditIssue } from "@gitup/shared";
 import {
   FileText,
   Activity,
@@ -28,12 +28,12 @@ export const RepoDoctor: React.FC = () => {
     setTimeout(() => setCooldownUntil(0), COOLDOWN_MS + 50);
     setIsAnalyzing(true);
     try {
-        // const result = await analyzeProjectManifest(manifest);
-        // setAnalysis(result);
-        // Mocking for now as we migrate
-        setAnalysis({ score: 100, summary: "Analysis disabled during migration.", issues: [] });
-    } catch(e) {
-        console.error(e);
+      // const result = await analyzeProjectManifest(manifest);
+      // setAnalysis(result);
+      // Mocking for now as we migrate
+      setAnalysis({ score: 100, summary: "Analysis disabled during migration.", issues: [] });
+    } catch (e) {
+      console.error(e);
     }
     setIsAnalyzing(false);
     // if (result.issues.length > 0) setSelectedIssue(result.issues[0]);
@@ -46,8 +46,7 @@ export const RepoDoctor: React.FC = () => {
       type: "text/plain",
     });
     element.href = URL.createObjectURL(file);
-    const filename =
-      selectedIssue.fixFile.path.split("/").pop() || "fixed-file.txt";
+    const filename = selectedIssue.fixFile.path.split("/").pop() || "fixed-file.txt";
     element.download = filename;
     document.body.appendChild(element);
     element.click();
@@ -59,18 +58,13 @@ export const RepoDoctor: React.FC = () => {
       <div className="flex flex-col items-center justify-center h-full text-slate-400 animate-fade-in gap-6">
         <div className="relative">
           <div className="absolute inset-0 bg-red-500 blur-2xl opacity-20 rounded-full animate-pulse"></div>
-          <Stethoscope
-            size={64}
-            className="text-red-400 relative z-10 animate-bounce-subtle"
-          />
+          <Stethoscope size={64} className="text-red-400 relative z-10 animate-bounce-subtle" />
         </div>
         <div className="text-center">
-          <h3 className="text-2xl text-white font-bold mb-2">
-            Examining Vital Signs...
-          </h3>
+          <h3 className="text-2xl text-white font-bold mb-2">Examining Vital Signs...</h3>
           <p className="max-w-md mx-auto text-slate-400">
-            Our AI specialists are auditing your configuration for security
-            risks, performance bottlenecks, and best practices.
+            Our AI specialists are auditing your configuration for security risks, performance
+            bottlenecks, and best practices.
           </p>
         </div>
       </div>
@@ -110,9 +104,7 @@ export const RepoDoctor: React.FC = () => {
                 style={{ width: `${analysis.score}%` }}
               />
             </div>
-            <p className="text-sm text-slate-400 mt-4 leading-relaxed">
-              {analysis.summary}
-            </p>
+            <p className="text-sm text-slate-400 mt-4 leading-relaxed">{analysis.summary}</p>
           </div>
 
           {/* Issues List */}
@@ -132,22 +124,13 @@ export const RepoDoctor: React.FC = () => {
                   }`}
                 >
                   {issue.severity === "critical" && (
-                    <AlertTriangle
-                      size={16}
-                      className="text-red-500 mt-0.5 shrink-0"
-                    />
+                    <AlertTriangle size={16} className="text-red-500 mt-0.5 shrink-0" />
                   )}
                   {issue.severity === "warning" && (
-                    <AlertTriangle
-                      size={16}
-                      className="text-yellow-500 mt-0.5 shrink-0"
-                    />
+                    <AlertTriangle size={16} className="text-yellow-500 mt-0.5 shrink-0" />
                   )}
                   {issue.severity === "info" && (
-                    <CheckCircle
-                      size={16}
-                      className="text-blue-500 mt-0.5 shrink-0"
-                    />
+                    <CheckCircle size={16} className="text-blue-500 mt-0.5 shrink-0" />
                   )}
                   <div>
                     <div
@@ -180,18 +163,13 @@ export const RepoDoctor: React.FC = () => {
                     {selectedIssue.severity} Priority
                   </span>
                 </div>
-                <h2 className="text-xl font-bold text-white mb-2">
-                  {selectedIssue.title}
-                </h2>
-                <p className="text-slate-400 leading-relaxed">
-                  {selectedIssue.description}
-                </p>
+                <h2 className="text-xl font-bold text-white mb-2">{selectedIssue.title}</h2>
+                <p className="text-slate-400 leading-relaxed">{selectedIssue.description}</p>
               </div>
 
               <div className="flex-1 p-6 overflow-y-auto custom-scrollbar">
                 <h4 className="text-sm font-bold text-slate-300 mb-3 flex items-center gap-2">
-                  <Activity size={16} className="text-brand-400" /> Suggested
-                  Remedy
+                  <Activity size={16} className="text-brand-400" /> Suggested Remedy
                 </h4>
                 <div className="bg-slate-950 rounded-lg p-4 border border-slate-800 mb-6 text-slate-300 text-sm">
                   {selectedIssue.suggestion}
@@ -200,8 +178,8 @@ export const RepoDoctor: React.FC = () => {
                 {selectedIssue.fixFile && (
                   <>
                     <h4 className="text-sm font-bold text-slate-300 mb-3 flex items-center gap-2">
-                      <FileText size={16} className="text-brand-400" /> Fixed
-                      File: {selectedIssue.fixFile.path}
+                      <FileText size={16} className="text-brand-400" /> Fixed File:{" "}
+                      {selectedIssue.fixFile.path}
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="bg-slate-950 rounded-lg border border-slate-800 overflow-hidden">
@@ -217,9 +195,7 @@ export const RepoDoctor: React.FC = () => {
                           Fixed
                           <button
                             onClick={() =>
-                              navigator.clipboard.writeText(
-                                selectedIssue.fixFile?.content || "",
-                              )
+                              navigator.clipboard.writeText(selectedIssue.fixFile?.content || "")
                             }
                             className="text-xs bg-slate-800 text-slate-400 px-2 py-1 rounded hover:text-white"
                           >
@@ -264,8 +240,7 @@ export const RepoDoctor: React.FC = () => {
         <p className="text-lg text-slate-400">
           Paste your configuration file (package.json, go.mod, etc.) below.
           <br />
-          Our AI will analyze it for deprecated packages, security risks, and
-          missed best practices.
+          Our AI will analyze it for deprecated packages, security risks, and missed best practices.
         </p>
       </div>
 

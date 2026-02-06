@@ -1,5 +1,5 @@
 {
-  "name": "repoforge-monorepo",
+  "name": "gitup-monorepo",
   "private": true,
   "scripts": {
     "build": "pnpm -r run build",
