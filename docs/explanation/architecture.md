@@ -7,3 +7,8 @@ GitUp is a monorepo with three main packages:
 - `packages/shared` - Shared types and validation utilities.
 
 The VS Code extension hosts the webview and calls the VS Code LM to generate scaffolds, then returns validated artifacts to the UI.
+
+## Planned architecture
+
+- Optional external provider integration via a server-backed adapter with explicit data egress controls.
+- Extension-driven preview diffs before applying file changes.
