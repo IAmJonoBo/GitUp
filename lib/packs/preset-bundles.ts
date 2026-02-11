@@ -1,4 +1,4 @@
-import { PlanConfigPatch } from '../../types';
+import { PlanConfigPatch, ProjectType, RepoStructure } from '../../types';
 
 export interface PresetBundle {
   id: string;
@@ -40,7 +40,7 @@ export const PRESET_BUNDLES: PresetBundle[] = [
     packs: ['pack.quality.lint-eslint', 'pack.quality.format-prettier', 'pack.quality.test-vitest', 'pack.release.semantic'],
     config: {
       visibility: 'private',
-      structure: 'Monorepo',
+      structure: RepoStructure.MONO,
       quality: { testing: true, coverageTarget: 95 },
       ci: { runTests: true, buildArtifacts: true, automaticRelease: true, deployToCloud: false },
       security: { codeScanning: true, secretScanning: true, dependencyUpdates: true, dependencyUpdateFrequency: 'daily' },
@@ -67,7 +67,7 @@ export const PRESET_BUNDLES: PresetBundle[] = [
     packs: ['pack.runtime.framework'],
     config: {
       projectName: 'go-service-api',
-      type: 'Service',
+      type: ProjectType.SERVICE,
       architecture: 'Clean',
       stack: { language: 'Go', framework: 'Gin', packageManager: 'npm', builder: 'Go Build' },
       quality: { linter: 'None', testing: true, testFramework: 'Go Test', coverageTarget: 70 },

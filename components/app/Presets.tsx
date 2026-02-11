@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Card, Button, Badge, Input, Label } from '../ui/primitives';
 import { useStore } from '../../store';
-import { PlanConfigPatch, Preset } from '../../types';
+import { PlanConfigPatch, Preset, ProjectType, RepoStructure } from '../../types';
 import { Rocket, Shield, Box, Layout, Server, BookOpen, Layers, Plus, Save, Trash2, X, type LucideIcon } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { cn } from '../../lib/utils';
@@ -65,8 +65,8 @@ const governancePresets: PresetCardData[] = [
     tone: 'blue',
     bundleIds: ['bundle.governance.solo-quickstart'],
     config: {
-      type: 'Web App',
-      structure: 'Polyrepo',
+      type: ProjectType.WEB,
+      structure: RepoStructure.POLY,
     },
   },
   {
@@ -77,8 +77,8 @@ const governancePresets: PresetCardData[] = [
     tone: 'purple',
     bundleIds: ['bundle.governance.team-standard'],
     config: {
-      type: 'Service',
-      structure: 'Polyrepo',
+      type: ProjectType.SERVICE,
+      structure: RepoStructure.POLY,
     },
   },
   {
@@ -89,7 +89,7 @@ const governancePresets: PresetCardData[] = [
     tone: 'emerald',
     bundleIds: ['bundle.governance.enterprise'],
     config: {
-      type: 'Library',
+      type: ProjectType.LIBRARY,
     },
   },
 ];
@@ -103,7 +103,7 @@ const stackTemplates: PresetCardData[] = [
     tone: 'cyan',
     bundleIds: ['bundle.stack.next-full'],
     config: {
-      type: 'Web App',
+      type: ProjectType.WEB,
     },
   },
   {
@@ -122,13 +122,17 @@ const stackTemplates: PresetCardData[] = [
     tone: 'orange',
     bundleIds: ['bundle.stack.docs-site'],
     config: {
-      type: 'Web App',
+      type: ProjectType.WEB,
     },
   },
 ];
 
 export const Presets = () => {
-  const { applyPreset, customPresets, addCustomPreset, deleteCustomPreset, config: currentConfig } = useStore();
+  const applyPreset = useStore((state) => state.applyPreset);
+  const customPresets = useStore((state) => state.customPresets);
+  const addCustomPreset = useStore((state) => state.addCustomPreset);
+  const deleteCustomPreset = useStore((state) => state.deleteCustomPreset);
+  const currentConfig = useStore((state) => state.config);
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [newPresetName, setNewPresetName] = useState('');
   const [newPresetDesc, setNewPresetDesc] = useState('');

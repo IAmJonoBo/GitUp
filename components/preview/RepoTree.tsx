@@ -75,18 +75,16 @@ const TreeItem = ({ node, depth, onSelect, selectedPath }: { node: TreeNode; dep
       style={{ paddingLeft: `${depth * 12 + 20}px` }}
       onClick={() => onSelect(node)}
     >
-      <FileIcon name={node.name} />
+      <FileIcon name={node.name} className="w-3 h-3" />
       <span className="font-mono truncate">{node.name}</span>
     </div>
   );
 };
 
 export const RepoTree = () => {
-  const { repoSpec, changePlan, config } = useStore((state) => ({
-    repoSpec: state.repoSpec,
-    changePlan: state.changePlan,
-    config: state.config,
-  }));
+  const repoSpec = useStore((state) => state.repoSpec);
+  const changePlan = useStore((state) => state.changePlan);
+  const config = useStore((state) => state.config);
 
   const [selectedPath, setSelectedPath] = useState<string | null>(repoSpec.files[0] ?? null);
 
@@ -126,7 +124,7 @@ export const RepoTree = () => {
           {selectedPath ? (
             <div className="min-h-full p-4">
               <Tooltip>
-                <TooltipTrigger asChild>
+                <TooltipTrigger type="button" className="w-full text-left bg-transparent p-0 border-0">
                   <pre className="text-[10px] leading-relaxed font-mono text-foreground/80 whitespace-pre-wrap">{selectedContent}</pre>
                 </TooltipTrigger>
                 <TooltipContent side="top">Derived from RepoSpec + ChangePlan</TooltipContent>

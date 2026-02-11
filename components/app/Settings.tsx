@@ -5,7 +5,10 @@ import { Moon, Sun, Monitor, Zap, Eye } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 export const Settings = () => {
-    const { theme, setTheme, reducedMotion, setReducedMotion } = useStore();
+    const theme = useStore((state) => state.theme);
+    const setTheme = useStore((state) => state.setTheme);
+    const reducedMotion = useStore((state) => state.reducedMotion);
+    const setReducedMotion = useStore((state) => state.setReducedMotion);
     const themeOptions = [
         { id: 'dark', label: 'Dark', icon: Moon },
         { id: 'light', label: 'Light', icon: Sun },

@@ -11,7 +11,11 @@ const TARGET_LABELS: Record<PublishTarget, string> = {
 };
 
 export const ApplyScreen = () => {
-  const { publisherActions, publishTarget, setPublishTarget, startSimulation, isSimulating } = useStore();
+  const publisherActions = useStore((state) => state.publisherActions);
+  const publishTarget = useStore((state) => state.publishTarget);
+  const setPublishTarget = useStore((state) => state.setPublishTarget);
+  const startSimulation = useStore((state) => state.startSimulation);
+  const isSimulating = useStore((state) => state.isSimulating);
 
   return (
     <Card className="mt-6 p-4 border-cyan-500/30 bg-cyan-500/5">

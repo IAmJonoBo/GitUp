@@ -56,7 +56,7 @@ export const MultiplierBadge = () => {
 
     return (
         <Tooltip>
-            <TooltipTrigger asChild>
+            <TooltipTrigger type="button" className="bg-transparent p-0 border-0">
                 <motion.div 
                     key={score} 
                     initial={{ scale: 0.8, opacity: 0 }}

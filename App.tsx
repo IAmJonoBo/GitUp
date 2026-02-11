@@ -72,7 +72,10 @@ const LoadingState = ({ message }: { message: string }) => (
 );
 
 const SimulationOverlay = () => {
-  const { isSimulating, simulationLog, reset, config } = useStore();
+  const isSimulating = useStore((state) => state.isSimulating);
+  const simulationLog = useStore((state) => state.simulationLog);
+  const reset = useStore((state) => state.reset);
+  const config = useStore((state) => state.config);
   const showOverlay = isSimulating || simulationLog.length > 0;
   const scrollRef = React.useRef<HTMLDivElement>(null);
 
@@ -205,15 +208,13 @@ const PreviewPane = ({ className }: { className?: string }) => (
 );
 
 const App = () => {
-  const {
-    currentView,
-    setCurrentView,
-    reset,
-    mobilePreviewOpen,
-    toggleMobilePreview,
-    theme,
-    reducedMotion,
-  } = useStore();
+  const currentView = useStore((state) => state.currentView);
+  const setCurrentView = useStore((state) => state.setCurrentView);
+  const reset = useStore((state) => state.reset);
+  const mobilePreviewOpen = useStore((state) => state.mobilePreviewOpen);
+  const toggleMobilePreview = useStore((state) => state.toggleMobilePreview);
+  const theme = useStore((state) => state.theme);
+  const reducedMotion = useStore((state) => state.reducedMotion);
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
   React.useEffect(() => {

@@ -4,7 +4,7 @@ import { Button, Card } from '../ui/primitives';
 import { Download, Copy, Check, FileJson } from 'lucide-react';
 
 export const Export = () => {
-    const { config } = useStore();
+    const config = useStore((state) => state.config);
     const [copied, setCopied] = useState(false);
 
     const jsonString = JSON.stringify(config, null, 2);
