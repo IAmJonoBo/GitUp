@@ -22,6 +22,9 @@ export type BuildTool = 'None' | 'Nx' | 'Turborepo';
 export type Linter = 'ESLint' | 'Biome' | 'None';
 export type Formatter = 'Prettier' | 'Biome' | 'None';
 export type QualityPlatform = 'None' | 'Trunk.io';
+export type GovernancePosture = 'Relaxed' | 'Team Standard' | 'Strict';
+export type NoiseBudgetPreset = 'low' | 'medium' | 'high';
+export type NoiseBudget = NoiseBudgetPreset | number;
 
 export type TestFramework = 'Jest' | 'Vitest' | 'Mocha' | 'Pytest' | 'Go Test' | 'Cargo Test' | 'JUnit' | 'RSpec' | 'None';
 export type E2EFramework = 'Playwright' | 'Cypress' | 'None';
@@ -45,6 +48,8 @@ export interface DesignSpec {
   structure: RepoStructure;
   type: ProjectType;
   architecture: Architecture;
+  noiseBudget: NoiseBudget;
+  governancePosture: GovernancePosture;
   github: {
     topics: string[];
     features: {
@@ -161,6 +166,36 @@ export interface RepoSpec {
   name: string;
   packageManager: DesignSpec['stack']['packageManager'];
   architecture: DesignSpec['architecture'];
+  automation: {
+    dependabot: {
+      schedule: DesignSpec['security']['dependencyUpdateFrequency'];
+      grouping: 'none' | 'language' | 'broad';
+      estimatedMonthlyPrs: number;
+    };
+    ci: {
+      matrixBreadth: 'minimal' | 'standard' | 'broad';
+      dimensions: string[];
+    };
+  };
+  governance: {
+    posture: GovernancePosture;
+    ruleset: 'lenient' | 'standard' | 'strict';
+    branch: {
+      requirePr: boolean;
+      requiredReviewers: number;
+      requireStatusChecks: boolean;
+      requireLinearHistory: boolean;
+      requireCodeOwners: boolean;
+      requireSignedCommits: boolean;
+    };
+    statusChecks: string[];
+    securityDefaults: {
+      codeScanning: boolean;
+      secretScanning: boolean;
+      dependencyUpdates: boolean;
+      dependencyUpdateFrequency: DesignSpec['security']['dependencyUpdateFrequency'];
+    };
+  };
   files: string[];
   packs: RepoPackResolution;
 }
