@@ -61,7 +61,7 @@ const clearSimulationTimer = () => {
   simulationTimer = null;
 };
 
-const createCompiledState = (designSpec: DesignSpec, previousPlan?: ChangePlan) => {
+const createCompiledState = (designSpec: DesignSpec, previousPlan?: ChangePlan, userMode: UserMode = 'basic') => {
   const repoSpec = compileRepoSpec(designSpec);
   const changePlan = compileDesignSpecToChangePlan(designSpec);
 
@@ -73,11 +73,11 @@ const createCompiledState = (designSpec: DesignSpec, previousPlan?: ChangePlan) 
     previousChangePlan: previousPlan ?? changePlan,
     pendingDiff: previousPlan ? buildChangePlanDiff(previousPlan, changePlan) : null,
     engineDecisions: createEngineDecisionPayloads(designSpec, repoSpec, changePlan),
-    publisherActions: mapChangePlanToPublisherActions(changePlan),
+    publisherActions: mapChangePlanToPublisherActions(designSpec, repoSpec, changePlan, { userMode }),
   };
 };
 
-const createInitialState = () => createCompiledState(createDefaultPlanConfig());
+const createInitialState = () => createCompiledState(createDefaultPlanConfig(), undefined, 'basic');
 
 export const useStore = create<AppState>((set, get) => ({
   ...createInitialState(),
@@ -98,7 +98,11 @@ export const useStore = create<AppState>((set, get) => ({
       step,
       maxStepVisited: Math.max(state.maxStepVisited, step),
     })),
-  setUserMode: (mode) => set({ userMode: mode }),
+  setUserMode: (mode) =>
+    set((state) => ({
+      userMode: mode,
+      publisherActions: mapChangePlanToPublisherActions(state.designSpec, state.repoSpec, state.changePlan, { userMode: mode }),
+    })),
   setCurrentView: (view) => set({ currentView: view }),
   setWorkflowPhase: (phase) => set({ workflowPhase: phase }),
   confirmDiffInterstitial: () => set({ workflowPhase: 'explain', pendingDiff: null, diffPromptReason: null }),
@@ -107,7 +111,7 @@ export const useStore = create<AppState>((set, get) => ({
   updateConfig: (updates) =>
     set((state) => {
       const nextSpec = mergePlanConfig(state.designSpec, updates);
-      const compiled = createCompiledState(nextSpec, state.changePlan);
+      const compiled = createCompiledState(nextSpec, state.changePlan, state.userMode);
       const reason =
         updates.visibility !== undefined
           ? { key: 'visibility' as const, label: 'repository visibility' }
@@ -126,7 +130,7 @@ export const useStore = create<AppState>((set, get) => ({
 
   applyPreset: (presetConfig) =>
     set((state) => {
-      const compiled = createCompiledState(applyPresetConfig(presetConfig), state.changePlan);
+      const compiled = createCompiledState(applyPresetConfig(presetConfig), state.changePlan, state.userMode);
       const hasDiff = Boolean(compiled.pendingDiff?.added.length || compiled.pendingDiff?.removed.length);
 
       return {

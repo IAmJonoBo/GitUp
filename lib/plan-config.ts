@@ -50,6 +50,7 @@ const DEFAULT_PLAN_CONFIG: PlanConfig = {
   },
   stack: {
     language: 'TypeScript',
+    rustMode: 'template',
     languageVersion: '20.x',
     framework: 'Next.js',
     packageManager: 'pnpm',

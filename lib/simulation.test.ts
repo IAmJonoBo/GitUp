@@ -44,9 +44,10 @@ describe('simulation builder', () => {
     expect(diff.added.some((operation) => operation.target === 'README.md')).toBe(true);
     expect(diff.removed.length).toBe(0);
 
-    const actions = mapChangePlanToPublisherActions(nextPlan);
-    expect(actions.length).toBe(nextPlan.operations.length);
-    expect(actions[0].action).toBe('publish.workflow');
+    const nextRepoSpec = compileRepoSpec(next);
+    const actions = mapChangePlanToPublisherActions(next, nextRepoSpec, nextPlan);
+    expect(actions.length).toBeGreaterThan(nextPlan.operations.length);
+    expect(actions.some((action) => action.action === 'publish.render' || action.action === 'publish.plan')).toBe(true);
   });
 
   it('emits decision payloads across compiler stages', () => {
