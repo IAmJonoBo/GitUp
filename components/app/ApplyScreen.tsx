@@ -13,9 +13,17 @@ const TARGET_LABELS: Record<PublishTarget, string> = {
 export const ApplyScreen = () => {
   const publisherActions = useStore((state) => state.publisherActions);
   const publishTarget = useStore((state) => state.publishTarget);
+  const designSpec = useStore((state) => state.designSpec);
   const setPublishTarget = useStore((state) => state.setPublishTarget);
   const startSimulation = useStore((state) => state.startSimulation);
   const isSimulating = useStore((state) => state.isSimulating);
+
+  const rustModeLabel =
+    designSpec.stack.language === "Rust"
+      ? designSpec.stack.rustMode === "projen-experimental"
+        ? "Rust mode: projen-experimental"
+        : "Rust mode: template"
+      : null;
 
   return (
     <Card className="mt-6 p-4 border-cyan-500/30 bg-cyan-500/5">
@@ -25,6 +33,7 @@ export const ApplyScreen = () => {
           <p className="text-xs text-zinc-400">
             Mapped publisher actions that will be executed against your
             repository.
+            {rustModeLabel ? ` ${rustModeLabel}.` : ""}
           </p>
         </div>
         <Button
@@ -66,6 +75,9 @@ export const ApplyScreen = () => {
             <div>
               <p className="text-zinc-100">{action.action}</p>
               <p className="text-zinc-500">{action.target}</p>
+              {rustModeLabel && (
+                <p className="text-[10px] text-amber-300/80">{rustModeLabel}</p>
+              )}
             </div>
             <span className="text-zinc-500">{action.sourceOperationId}</span>
           </div>

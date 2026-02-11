@@ -170,8 +170,68 @@ describe("simulation builder", () => {
     expect(localActions).not.toEqual(createRepoActions);
   });
 
+
+  it("switches Rust mode artifacts and action mappings deterministically", () => {
+    const config = createDefaultPlanConfig();
+    config.stack.language = "Rust";
+    config.stack.framework = "Axum";
+    config.stack.packageManager = "cargo";
+
+    const templateRepoSpec = compileRepoSpec(config);
+    const templatePlan = compileDesignSpecToChangePlan(config);
+    const templateActionsBasic = mapChangePlanToPublisherActions(
+      config,
+      templateRepoSpec,
+      templatePlan,
+      { userMode: "basic", target: "local" },
+    );
+
+    expect(
+      templateActionsBasic.some(
+        (action) => action.target === "templates/rust/template-manifest.md",
+      ),
+    ).toBe(true);
+    expect(
+      templateActionsBasic.some(
+        (action) => action.target === ".projen/rust-experimental-summary.json",
+      ),
+    ).toBe(false);
+
+    config.stack.rustMode = "projen-experimental";
+
+    const experimentalRepoSpec = compileRepoSpec(config);
+    const experimentalPlan = compileDesignSpecToChangePlan(config);
+    const experimentalActionsBasic = mapChangePlanToPublisherActions(
+      config,
+      experimentalRepoSpec,
+      experimentalPlan,
+      { userMode: "basic", target: "local" },
+    );
+    const experimentalActionsPower = mapChangePlanToPublisherActions(
+      config,
+      experimentalRepoSpec,
+      experimentalPlan,
+      { userMode: "power", target: "local" },
+    );
+
+    expect(experimentalActionsBasic).toEqual(templateActionsBasic);
+    expect(
+      experimentalActionsPower.some(
+        (action) => action.target === ".projen/rust-experimental-summary.json",
+      ),
+    ).toBe(true);
+    expect(
+      experimentalActionsPower.some((action) => action.target === ".projenrc.ts"),
+    ).toBe(true);
+    expect(experimentalActionsPower).not.toEqual(templateActionsBasic);
+  });
+
   it("emits decision payloads across compiler stages", () => {
     const config = createDefaultPlanConfig();
+    config.stack.language = "Rust";
+    config.stack.packageManager = "cargo";
+    config.stack.framework = "Axum";
+    config.stack.rustMode = "template";
     const repoSpec = compileRepoSpec(config);
     const plan = compileDesignSpecToChangePlan(config);
 
@@ -179,6 +239,7 @@ describe("simulation builder", () => {
 
     expect(decisions.map((decision) => decision.stage)).toEqual([
       "normalize",
+      "repo-spec",
       "repo-spec",
       "change-plan",
     ]);
@@ -188,6 +249,9 @@ describe("simulation builder", () => {
       (decision) => decision.key === "stack-resolution",
     );
     expect(stackDecision?.why).toContain("posture enforces");
+
+    const rustDecision = decisions.find((decision) => decision.key === "rust-mode");
+    expect(rustDecision?.recommendation).toContain("Template renderer");
 
     const publishingDecision = decisions.find(
       (decision) => decision.key === "change-plan-publishing",

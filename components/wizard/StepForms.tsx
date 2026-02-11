@@ -641,19 +641,27 @@ export const StepStack = () => {
           </div>
 
           {config.stack.language === "Rust" && (
-            <div className="mt-6">
+            <div className="mt-6 space-y-2">
               <Label className="mb-2 block">Rust Mode</Label>
+              <p className="text-[10px] text-muted-foreground">
+                Choose how Rust output is generated. Template mode is stable and
+                deterministic; projen mode is experimental and only available in
+                Power mode.
+              </p>
               <div className="space-y-2">
                 {[
                   {
                     id: "template",
                     label: "Template (recommended)",
-                    helper: "Stable template renderer path.",
+                    helper: "Stable template renderer path with deterministic manifests.",
                   },
                   {
                     id: "projen-experimental",
                     label: "Projen Rust (experimental)",
-                    helper: "Guarded by Power mode feature flag.",
+                    helper:
+                      userMode === "power"
+                        ? "Enabled in Power mode: emits projen synth actions and summaries."
+                        : "Locked in Basic mode. Switch to Power mode to evaluate this path.",
                   },
                 ].map((mode) => {
                   const disabled =
@@ -692,6 +700,18 @@ export const StepStack = () => {
                   );
                 })}
               </div>
+              {userMode === "power" && (
+                <details className="rounded-md border border-border bg-muted/40 p-2 text-[10px] text-muted-foreground">
+                  <summary className="cursor-pointer text-foreground">
+                    Why this matters (advanced)
+                  </summary>
+                  <p className="mt-1">
+                    Rust mode controls renderer and apply behavior. Template mode
+                    emits a template manifest artifact, while projen experimental
+                    mode emits projen synth actions and a mode summary artifact.
+                  </p>
+                </details>
+              )}
             </div>
           )}
 

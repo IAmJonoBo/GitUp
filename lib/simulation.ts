@@ -62,6 +62,41 @@ export const createEngineDecisionPayloads = (
 
   const governanceImpactSummary = `${repoSpec.governance.artifactModel.rulesetProfile.label} posture enforces ${repoSpec.governance.artifactModel.requiredChecks.checks.length} required checks and ${repoSpec.governance.artifactModel.reviewConstraints.requiredReviewers} reviewer(s).`;
 
+  const rustModeDecision =
+    designSpec.stack.language === "Rust"
+      ? {
+          key: "rust-mode",
+          stage: "repo-spec" as const,
+          title: "Rust Mode",
+          recommendation:
+            designSpec.stack.rustMode === "projen-experimental"
+              ? "Projen Rust (experimental)"
+              : "Template renderer (stable)",
+          why:
+            designSpec.stack.rustMode === "projen-experimental"
+              ? "Experimental projen synthesis is enabled for Rust to evaluate generated project ergonomics and automation parity."
+              : "Template mode keeps Rust scaffolding deterministic and avoids experimental synthesis paths.",
+          tradeOffs:
+            designSpec.stack.rustMode === "projen-experimental"
+              ? [
+                  "Experimental behavior may change between releases",
+                  "Requires Power mode to unlock advanced synthesis",
+                ]
+              : [
+                  "Fewer generated automations than projen mode",
+                  "Template updates require manual refresh",
+                ],
+          alternatives:
+            designSpec.stack.rustMode === "projen-experimental"
+              ? ["Template renderer (stable)"]
+              : ["Projen Rust (experimental)"],
+          confidence:
+            designSpec.stack.rustMode === "projen-experimental"
+              ? ("Medium" as const)
+              : ("High" as const),
+        }
+      : null;
+
   return [
     {
       key: "architecture-normalization",
@@ -91,6 +126,7 @@ export const createEngineDecisionPayloads = (
       alternatives: ["TypeScript + Express", "Go + Gin", "Python + FastAPI"],
       confidence: "Medium",
     },
+    ...(rustModeDecision ? [rustModeDecision] : []),
     {
       key: "change-plan-publishing",
       stage: "change-plan",

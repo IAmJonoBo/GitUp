@@ -82,31 +82,50 @@ const buildRustTemplateArtifacts = (
   dryRun: boolean,
 ): PublisherArtifact[] => [
   {
-    path: "templates/rust/bootstrap-template.md",
+    path: "templates/rust/template-manifest.md",
     kind: "file",
     content: [
-      "# Rust Template Renderer",
+      "# Rust Template Mode Manifest",
+      "",
+      "Mode: template",
       "",
       ...repoSpec.files.map((filePath) => `- ${filePath}`),
     ].join("\n"),
     description: dryRun
-      ? "Would render Rust template output"
-      : "Rendered Rust template output",
+      ? "Would render Rust template mode manifest"
+      : "Rendered Rust template mode manifest",
   },
 ];
 
 const buildRustExperimentalArtifacts = (
+  repoSpec: RepoSpec,
   dryRun: boolean,
-): PublisherArtifact[] => [
-  {
-    path: ".projenrc.ts",
-    kind: dryRun ? "planned-action" : "file",
-    content: "// Experimental projen-rust entrypoint\n",
-    description: dryRun
-      ? "Would invoke projen-rust synth"
-      : "Invoked projen-rust synth",
-  },
-];
+): PublisherArtifact[] => {
+  const experimentalSummary = {
+    mode: "projen-experimental",
+    synthTargets: repoSpec.files.slice(0, 8),
+    generatedAt: "deterministic-preview",
+  };
+
+  return [
+    {
+      path: ".projenrc.ts",
+      kind: dryRun ? "planned-action" : "file",
+      content: "// Rust mode: projen-experimental\n",
+      description: dryRun
+        ? "Would synthesize projen Rust project (experimental mode)"
+        : "Synthesized projen Rust project (experimental mode)",
+    },
+    {
+      path: ".projen/rust-experimental-summary.json",
+      kind: dryRun ? "planned-action" : "artifact",
+      content: JSON.stringify(experimentalSummary, null, 2),
+      description: dryRun
+        ? "Would emit projen experimental mode summary"
+        : "Emitted projen experimental mode summary",
+    },
+  ];
+};
 
 export const renderPublisherArtifacts = (
   designSpec: DesignSpec,
@@ -130,7 +149,10 @@ export const renderPublisherArtifacts = (
       designSpec.stack.rustMode === "projen-experimental" &&
       enableRustExperimental
     ) {
-      return [...buildRustExperimentalArtifacts(dryRun), ...governanceArtifacts];
+      return [
+        ...buildRustExperimentalArtifacts(repoSpec, dryRun),
+        ...governanceArtifacts,
+      ];
     }
 
     return [...buildRustTemplateArtifacts(repoSpec, dryRun), ...governanceArtifacts];
