@@ -5,6 +5,7 @@ import { StepBasics, StepType, StepCI, StepStack, StepQuality, StepDocs, StepSec
 import { ChevronRight, ChevronLeft, Flag, Check, Zap, Eye, LayoutTemplate } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { motion } from 'framer-motion';
+import { DiffInterstitial } from '../app/DiffInterstitial';
 
 const steps = [
     { id: 'basics', title: 'Basics', component: StepBasics },
@@ -19,7 +20,7 @@ const steps = [
 ];
 
 export const Wizard = () => {
-  const { step, setStep, maxStepVisited, startSimulation, isSimulating, userMode, setUserMode, toggleMobilePreview, mobilePreviewOpen } = useStore();
+  const { step, setStep, maxStepVisited, isSimulating, userMode, setUserMode, toggleMobilePreview, mobilePreviewOpen, setWorkflowPhase } = useStore();
   const CurrentStepComponent = steps[step].component;
 
   const handleNext = () => {
@@ -72,6 +73,8 @@ export const Wizard = () => {
                 </div>
            </div>
       </div>
+
+      <DiffInterstitial />
 
       {/* Interactive Stepper */}
       <div className="flex items-center justify-between mb-10 relative px-1">
@@ -143,11 +146,11 @@ export const Wizard = () => {
         {step === steps.length - 1 ? (
              <Button 
                 variant="cyber"
-                onClick={startSimulation} 
+                onClick={() => setWorkflowPhase('apply')} 
                 disabled={isSimulating} 
             >
                 <Flag className="w-4 h-4 mr-2" /> 
-                {isSimulating ? 'Initializing...' : 'Bootstrap Project'}
+                {isSimulating ? 'Initializing...' : 'Continue to Apply'}
             </Button>
         ) : (
             <Button onClick={handleNext} variant="default" className="bg-zinc-100 text-zinc-950 hover:bg-white">

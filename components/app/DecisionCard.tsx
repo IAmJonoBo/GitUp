@@ -1,20 +1,20 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, Badge } from '../ui/primitives';
-import { DecisionPoint } from '../../types';
-import { Lightbulb, ThumbsUp, GitBranch, AlertTriangle } from 'lucide-react';
+import { EngineDecisionPayload } from '../../types';
+import { Lightbulb, GitBranch, AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-export const DecisionCard: React.FC<{ decision: DecisionPoint }> = ({ decision }) => {
+export const DecisionCard: React.FC<{ decision: EngineDecisionPayload }> = ({ decision }) => {
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
       <Card className="bg-zinc-900 border border-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.05)] overflow-hidden">
         <div className="bg-amber-500/10 px-6 py-3 border-b border-amber-500/20 flex items-center justify-between">
             <div className="flex items-center gap-2">
                 <Lightbulb className="w-4 h-4 text-amber-400" />
-                <span className="text-sm font-medium text-amber-100">Recommendation</span>
+                <span className="text-sm font-medium text-amber-100">{decision.title}</span>
             </div>
             <Badge variant="outline" className="text-amber-300 border-amber-500/30 bg-amber-500/10">
-                Confidence: {decision.confidence}
+                {decision.stage} • {decision.confidence}
             </Badge>
         </div>
         <CardContent className="pt-6">

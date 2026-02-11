@@ -154,6 +154,29 @@ export interface ChangePlan {
   operations: ChangeOperation[];
 }
 
+export interface ChangePlanDiff {
+  added: ChangeOperation[];
+  removed: ChangeOperation[];
+}
+
+export interface EngineDecisionPayload {
+  key: string;
+  stage: 'normalize' | 'repo-spec' | 'change-plan';
+  title: string;
+  recommendation: string;
+  why: string;
+  tradeOffs: string[];
+  alternatives: string[];
+  confidence: 'High' | 'Medium' | 'Low';
+}
+
+export interface PublisherAction {
+  id: string;
+  action: string;
+  target: string;
+  sourceOperationId: string;
+}
+
 export type DeepPartial<T> = {
   [K in keyof T]?: T[K] extends Array<infer U>
     ? U extends object

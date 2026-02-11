@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useStore } from '../../store';
 import { Input, Label, Switch, Button, Badge, Tooltip, TooltipContent, TooltipTrigger, Card, Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/primitives';
 import { DecisionCard } from '../app/DecisionCard';
+import { ApplyScreen } from '../app/ApplyScreen';
 import { RepoStructure, ProjectType, DocFramework, DocStyle, TestFramework, E2EFramework, BuildTool, Linter, Formatter, QualityPlatform, Architecture, Builder, DependencyStrategy, PlanConfig } from '../../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Shield, Zap, BookOpen, Terminal, Box, Globe, Layout, Server, Monitor, Layers, Package, Gauge, FileText, Users, Lock, RefreshCw, Scan, Info, Edit2, ChevronRight, Star, Cpu, ArrowDownCircle, MessagesSquare, Library, TestTube, Play, Beaker, Hammer, Boxes, Code2, CheckCheck, Languages, AlertTriangle, CheckCircle2, GitMerge, GitPullRequest, ListTodo, MessageSquare, Book, Rocket, ScrollText, Key, GitBranch, Workflow, Cloud, Settings, KeyRound, AppWindow, PlayCircle, Plus, X, Tag, Webhook as WebhookIcon, Bot, FileCode, Anchor, PenTool, LayoutTemplate, type LucideIcon } from 'lucide-react';
@@ -158,7 +159,7 @@ export const StepBasics = () => {
 
 // --- Step 2: Project Type & Architecture ---
 export const StepType = () => {
-    const { config, updateConfig, userMode } = useStore();
+    const { config, updateConfig, userMode, engineDecisions } = useStore();
     
     const types = [
         { id: ProjectType.WEB, icon: AppWindow, label: 'Web Application', desc: 'Frontend or Full-stack app' },
@@ -228,14 +229,7 @@ export const StepType = () => {
                      </div>
                      
                      <div className="mt-6">
-                         <DecisionCard decision={{
-                             title: 'Architecture',
-                             recommendation: architectures.find(a => a.rec)?.id || 'Standard',
-                             confidence: 'High',
-                             why: `Based on building a ${config.type}, this architecture provides the right balance of complexity and maintainability.`,
-                             tradeOffs: ['More boilerplate code', 'Steeper learning curve for new devs'],
-                             alternatives: architectures.filter(a => !a.rec).map(a => a.id)
-                         }} />
+                         <DecisionCard decision={engineDecisions.find((decision) => decision.key === 'architecture-normalization') ?? engineDecisions[0]} />
                      </div>
                  </div>
              )}
@@ -436,13 +430,14 @@ export const StepStack = () => {
                      </div>
                  </div>
              </div>
+
         </div>
     );
 };
 
 // --- Step 4: Quality & Testing ---
 export const StepQuality = () => {
-    const { config, updateConfig, userMode } = useStore();
+    const { config, updateConfig, userMode, engineDecisions } = useStore();
 
     return (
         <div className="space-y-8 animate-in slide-in-from-right-8 duration-500">
@@ -623,6 +618,12 @@ export const StepSecurity = () => {
 
     return (
         <div className="space-y-6 animate-in slide-in-from-right-8 duration-500">
+             <div className="space-y-3">
+                {engineDecisions.map((decision) => (
+                    <DecisionCard key={decision.key} decision={decision} />
+                ))}
+             </div>
+
              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                  <div className={cn("p-4 rounded-xl border transition-all", config.security.codeScanning ? "bg-card border-indigo-500/50" : "bg-card border-border")}>
                      <div className="flex justify-between items-start mb-3">
@@ -686,6 +687,7 @@ export const StepSecurity = () => {
                  </div>
                  <Switch checked={config.security.manageEnv} onCheckedChange={(v) => updateConfig({ security: { ...config.security, manageEnv: v } })} />
              </div>
+
         </div>
     );
 };
@@ -1038,7 +1040,7 @@ export const StepGitHub = () => {
 
 // --- Step 8: Docs & Standards ---
 export const StepDocs = () => {
-    const { config, updateConfig, userMode } = useStore();
+    const { config, updateConfig, userMode, engineDecisions } = useStore();
 
     const standardFiles = [
         { id: 'readme', label: 'README.md', desc: 'Project overview and setup instructions', icon: FileText },
@@ -1163,13 +1165,14 @@ export const StepDocs = () => {
                  </div>
 
              </div>
+
         </div>
     );
 }
 
 // --- Step 9: Review ---
 export const StepReview = () => {
-    const { config } = useStore();
+    const { config, engineDecisions, workflowPhase } = useStore();
 
     const sections = [
         { title: 'Project', icon: Package, items: [
@@ -1211,6 +1214,12 @@ export const StepReview = () => {
                 <p className="text-muted-foreground text-sm">Review your configuration before generating the repository plan.</p>
              </div>
 
+             <div className="space-y-3">
+                {engineDecisions.map((decision) => (
+                    <DecisionCard key={decision.key} decision={decision} />
+                ))}
+             </div>
+
              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {sections.map((s, i) => (
                     <Card key={i} className="bg-card/50 border-border p-4">
@@ -1229,6 +1238,8 @@ export const StepReview = () => {
                     </Card>
                 ))}
              </div>
+
+             {workflowPhase === 'apply' && <ApplyScreen />}
         </div>
     );
 }
