@@ -4,7 +4,10 @@ import { Button, Card } from '../ui/primitives';
 import { ArrowRightLeft } from 'lucide-react';
 
 export const DiffInterstitial = () => {
-  const { pendingDiff, diffPromptReason, confirmDiffInterstitial, setWorkflowPhase } = useStore();
+  const pendingDiff = useStore((state) => state.pendingDiff);
+  const diffPromptReason = useStore((state) => state.diffPromptReason);
+  const confirmDiffInterstitial = useStore((state) => state.confirmDiffInterstitial);
+  const setWorkflowPhase = useStore((state) => state.setWorkflowPhase);
 
   if (!pendingDiff || (!pendingDiff.added.length && !pendingDiff.removed.length)) {
     return null;

@@ -45,7 +45,9 @@ const renderEffectDiff = (label: string, left?: Record<string, string>, right?: 
 };
 
 export const ConflictResolutionPanel = () => {
-  const { repoSpec, resolveCapabilityConflict, capabilityOwnerOverrides } = useStore();
+  const repoSpec = useStore((state) => state.repoSpec);
+  const resolveCapabilityConflict = useStore((state) => state.resolveCapabilityConflict);
+  const capabilityOwnerOverrides = useStore((state) => state.capabilityOwnerOverrides);
   const conflicts = repoSpec.packs.capabilityConflicts;
 
   if (conflicts.length === 0) {

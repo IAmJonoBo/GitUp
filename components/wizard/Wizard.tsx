@@ -20,7 +20,15 @@ const steps = [
 ];
 
 export const Wizard = () => {
-  const { step, setStep, maxStepVisited, isSimulating, userMode, setUserMode, toggleMobilePreview, mobilePreviewOpen, setWorkflowPhase } = useStore();
+  const step = useStore((state) => state.step);
+  const setStep = useStore((state) => state.setStep);
+  const maxStepVisited = useStore((state) => state.maxStepVisited);
+  const isSimulating = useStore((state) => state.isSimulating);
+  const userMode = useStore((state) => state.userMode);
+  const setUserMode = useStore((state) => state.setUserMode);
+  const toggleMobilePreview = useStore((state) => state.toggleMobilePreview);
+  const mobilePreviewOpen = useStore((state) => state.mobilePreviewOpen);
+  const setWorkflowPhase = useStore((state) => state.setWorkflowPhase);
   const CurrentStepComponent = steps[step].component;
 
   const handleNext = () => {

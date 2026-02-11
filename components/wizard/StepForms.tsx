@@ -9,7 +9,7 @@ import { ApplyScreen } from '../app/ApplyScreen';
 import { ConflictResolutionPanel } from '../app/ConflictResolutionPanel';
 import { RepoStructure, ProjectType, DocFramework, DocStyle, TestFramework, E2EFramework, BuildTool, Linter, Formatter, QualityPlatform, Architecture, Builder, DependencyStrategy, PlanConfig, GovernancePosture, NoiseBudgetPreset } from '../../types';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, Shield, Zap, BookOpen, Terminal, Box, Globe, Layout, Server, Monitor, Layers, Package, Gauge, FileText, Users, Lock, RefreshCw, Scan, Info, Edit2, ChevronRight, Star, Cpu, ArrowDownCircle, MessagesSquare, Library, TestTube, Play, Beaker, Hammer, Boxes, Code2, CheckCheck, Languages, AlertTriangle, CheckCircle2, GitMerge, GitPullRequest, ListTodo, MessageSquare, Book, Rocket, ScrollText, Key, GitBranch, Workflow, Cloud, Settings, KeyRound, AppWindow, PlayCircle, Plus, X, Tag, Webhook as WebhookIcon, Bot, FileCode, Anchor, PenTool, LayoutTemplate, type LucideIcon } from 'lucide-react';
+import { Check, Shield, Zap, BookOpen, Terminal, Box, Globe, Layout, Server, Monitor, Layers, Package, Gauge, FileText, Users, Lock, RefreshCw, Scan, Info, Edit2, ChevronRight, Star, Cpu, ArrowDownCircle, MessagesSquare, Library, TestTube, Play, Beaker, Hammer, Boxes, Code2, CheckCheck, Languages, AlertTriangle, CheckCircle2, GitMerge, GitPullRequest, ListTodo, MessageSquare, Book, Rocket, ScrollText, Key, GitBranch, Workflow, Cloud, Settings, KeyRound, AppWindow, PlayCircle, Plus, X, Tag, Webhook as WebhookIcon, Bot, FileCode, Anchor, PenTool, LayoutTemplate, Gem, type LucideIcon } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 // --- Shared Components ---
@@ -50,7 +50,8 @@ const basicsSchema = z.object({
 type BasicsFormValues = z.infer<typeof basicsSchema>;
 
 export const StepBasics = () => {
-  const { config, updateConfig } = useStore();
+  const config = useStore((state) => state.config);
+  const updateConfig = useStore((state) => state.updateConfig);
   const { register, watch, setValue, formState: { errors } } = useForm<BasicsFormValues>({
     resolver: zodResolver(basicsSchema),
     defaultValues: {
@@ -62,15 +63,18 @@ export const StepBasics = () => {
     mode: 'onChange'
   });
 
-  const values = watch();
+  const projectName = watch('projectName');
+  const visibility = watch('visibility');
+  const structure = watch('structure');
+  const i18n = watch('i18n');
   React.useEffect(() => {
     updateConfig({
-        projectName: values.projectName,
-        visibility: values.visibility,
-        structure: values.structure,
-        basics: { ...config.basics, i18n: values.i18n }
+        projectName,
+        visibility,
+        structure,
+        basics: { i18n }
     });
-  }, [values, updateConfig]);
+  }, [projectName, visibility, structure, i18n, updateConfig]);
 
   return (
     <div className="space-y-8 animate-in slide-in-from-right-8 duration-500">
@@ -93,13 +97,13 @@ export const StepBasics = () => {
                     <div className="text-xs text-muted-foreground">Prepare project for multiple languages & locales</div>
                 </div>
             </div>
-            <Switch 
-                checked={values.i18n} 
-                onCheckedChange={(v) => setValue('i18n', v)} 
+            <Switch
+                checked={i18n}
+                onCheckedChange={(v) => setValue('i18n', v)}
             />
         </div>
         
-        {values.i18n && (
+        {i18n && (
             <div className="p-3 bg-muted/50 border border-border rounded-lg text-[10px] text-muted-foreground -mt-2 animate-in slide-in-from-top-1">
                 Will scaffold a <code className="text-foreground">locales</code> directory and configure the i18n routing middleware.
             </div>
@@ -108,21 +112,21 @@ export const StepBasics = () => {
         <div className="grid grid-cols-2 gap-4">
             <div 
                 onClick={() => setValue('visibility', 'public')}
-                className={cn("p-4 border rounded-xl cursor-pointer transition-all", values.visibility === 'public' ? 'border-primary bg-primary/5 shadow-md' : 'border-border bg-card hover:bg-accent')}
+                className={cn("p-4 border rounded-xl cursor-pointer transition-all", visibility === 'public' ? 'border-primary bg-primary/5 shadow-md' : 'border-border bg-card hover:bg-accent')}
             >
                 <div className="flex items-center justify-between mb-2">
-                    <span className={cn("font-semibold text-sm", values.visibility === 'public' ? 'text-primary' : 'text-foreground')}>Public</span>
-                    <Globe className={cn("w-4 h-4", values.visibility === 'public' ? 'text-primary' : 'text-muted-foreground')} />
+                    <span className={cn("font-semibold text-sm", visibility === 'public' ? 'text-primary' : 'text-foreground')}>Public</span>
+                    <Globe className={cn("w-4 h-4", visibility === 'public' ? 'text-primary' : 'text-muted-foreground')} />
                 </div>
                 <p className="text-xs text-muted-foreground leading-relaxed">Open source. Visible to everyone on GitHub.</p>
             </div>
             <div 
                  onClick={() => setValue('visibility', 'private')}
-                 className={cn("p-4 border rounded-xl cursor-pointer transition-all", values.visibility === 'private' ? 'border-primary bg-primary/5 shadow-md' : 'border-border bg-card hover:bg-accent')}
+                 className={cn("p-4 border rounded-xl cursor-pointer transition-all", visibility === 'private' ? 'border-primary bg-primary/5 shadow-md' : 'border-border bg-card hover:bg-accent')}
             >
                  <div className="flex items-center justify-between mb-2">
-                    <span className={cn("font-semibold text-sm", values.visibility === 'private' ? 'text-primary' : 'text-foreground')}>Private</span>
-                    <Shield className={cn("w-4 h-4", values.visibility === 'private' ? 'text-primary' : 'text-muted-foreground')} />
+                    <span className={cn("font-semibold text-sm", visibility === 'private' ? 'text-primary' : 'text-foreground')}>Private</span>
+                    <Shield className={cn("w-4 h-4", visibility === 'private' ? 'text-primary' : 'text-muted-foreground')} />
                 </div>
                 <p className="text-xs text-muted-foreground leading-relaxed">Restricted access. Only visible to you and your team.</p>
             </div>
@@ -146,7 +150,7 @@ export const StepBasics = () => {
                     <Button 
                         key={type} 
                         type="button" 
-                        variant={values.structure === type ? 'default' : 'outline'}
+                        variant={structure === type ? 'default' : 'outline'}
                         onClick={() => setValue('structure', type as RepoStructure)}
                         className="w-1/2"
                     >
@@ -162,13 +166,17 @@ export const StepBasics = () => {
 
 // --- Step 2: Project Type & Architecture ---
 export const StepType = () => {
-    const { config, updateConfig, userMode, engineDecisions } = useStore();
+    const config = useStore((state) => state.config);
+    const updateConfig = useStore((state) => state.updateConfig);
+    const userMode = useStore((state) => state.userMode);
+    const engineDecisions = useStore((state) => state.engineDecisions);
     
     const types = [
         { id: ProjectType.WEB, icon: AppWindow, label: 'Web Application', desc: 'Frontend or Full-stack app' },
         { id: ProjectType.SERVICE, icon: Server, label: 'Backend Service', desc: 'API, Worker, or Microservice' },
         { id: ProjectType.LIBRARY, icon: Library, label: 'Library / Package', desc: 'Reusable code for other apps' },
         { id: ProjectType.CLI, icon: Terminal, label: 'CLI Tool', desc: 'Command line interface' },
+        { id: ProjectType.DESKTOP, icon: Monitor, label: 'Desktop App', desc: 'Native desktop experiences' },
     ];
 
     const architectures: {id: Architecture, desc: string, rec: boolean}[] = [
@@ -246,7 +254,9 @@ const stackSchema = z.object({
 });
 
 export const StepStack = () => {
-    const { config, updateConfig, userMode } = useStore();
+    const config = useStore((state) => state.config);
+    const updateConfig = useStore((state) => state.updateConfig);
+    const userMode = useStore((state) => state.userMode);
     const { register, formState: { errors } } = useForm({
         resolver: zodResolver(stackSchema),
         defaultValues: { languageVersion: config.stack.languageVersion },
@@ -259,6 +269,7 @@ export const StepStack = () => {
         { id: 'Rust', icon: Cpu },
         { id: 'Python', icon: FileText },
         { id: 'Java', icon: Server },
+        { id: 'Ruby', icon: Gem },
     ];
 
     const frameworks: Record<PlanConfig['stack']['language'], string[]> = {
@@ -473,7 +484,10 @@ export const StepStack = () => {
 
 // --- Step 4: Quality & Testing ---
 export const StepQuality = () => {
-    const { config, updateConfig, userMode, engineDecisions } = useStore();
+    const config = useStore((state) => state.config);
+    const updateConfig = useStore((state) => state.updateConfig);
+    const userMode = useStore((state) => state.userMode);
+    const engineDecisions = useStore((state) => state.engineDecisions);
 
     return (
         <div className="space-y-8 animate-in slide-in-from-right-8 duration-500">
@@ -577,7 +591,8 @@ export const StepQuality = () => {
 
 // --- Step 5: CI/CD Pipeline ---
 export const StepCI = () => {
-    const { config, updateConfig } = useStore();
+    const config = useStore((state) => state.config);
+    const updateConfig = useStore((state) => state.updateConfig);
 
     const jobs = [
         { id: 'runTests', label: 'Run Tests', icon: TestTube, desc: 'Execute unit and integration tests on push' },
@@ -650,7 +665,10 @@ export const StepCI = () => {
 
 // --- Step 6: Security ---
 export const StepSecurity = () => {
-    const { config, updateConfig, userMode, engineDecisions } = useStore();
+    const config = useStore((state) => state.config);
+    const updateConfig = useStore((state) => state.updateConfig);
+    const userMode = useStore((state) => state.userMode);
+    const engineDecisions = useStore((state) => state.engineDecisions);
 
     return (
         <div className="space-y-6 animate-in slide-in-from-right-8 duration-500">
@@ -766,7 +784,9 @@ export const StepSecurity = () => {
 
 // --- Step 7: GitHub Ops ---
 export const StepGitHub = () => {
-    const { config, updateConfig, userMode } = useStore();
+    const config = useStore((state) => state.config);
+    const updateConfig = useStore((state) => state.updateConfig);
+    const userMode = useStore((state) => state.userMode);
     const [newTopic, setNewTopic] = useState('');
 
     const addTopic = (e: React.KeyboardEvent) => {
@@ -1137,7 +1157,10 @@ export const StepGitHub = () => {
 
 // --- Step 8: Docs & Standards ---
 export const StepDocs = () => {
-    const { config, updateConfig, userMode, engineDecisions } = useStore();
+    const config = useStore((state) => state.config);
+    const updateConfig = useStore((state) => state.updateConfig);
+    const userMode = useStore((state) => state.userMode);
+    const engineDecisions = useStore((state) => state.engineDecisions);
 
     const standardFiles = [
         { id: 'readme', label: 'README.md', desc: 'Project overview and setup instructions', icon: FileText },
@@ -1269,7 +1292,11 @@ export const StepDocs = () => {
 
 // --- Step 9: Review ---
 export const StepReview = () => {
-    const { config, engineDecisions, workflowPhase, userMode } = useStore();
+    const config = useStore((state) => state.config);
+    const engineDecisions = useStore((state) => state.engineDecisions);
+    const workflowPhase = useStore((state) => state.workflowPhase);
+    const userMode = useStore((state) => state.userMode);
+    const updateConfig = useStore((state) => state.updateConfig);
 
     const sections = [
         { title: 'Project', icon: Package, items: [

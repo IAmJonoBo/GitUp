@@ -57,7 +57,8 @@ export const MultiplierBadge = () => {
     return (
         <Tooltip>
             <TooltipTrigger asChild>
-                <motion.div 
+                <motion.button
+                    type="button"
                     key={score} 
                     initial={{ scale: 0.8, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
@@ -78,7 +79,7 @@ export const MultiplierBadge = () => {
                             {score}x Multiplier
                         </motion.span>
                     </AnimatePresence>
-                </motion.div>
+                </motion.button>
             </TooltipTrigger>
             <TooltipContent side="bottom" align="end" className="max-w-[220px] p-3 bg-zinc-950 border border-white/10">
                 <div className="flex items-center gap-2 mb-2 pb-2 border-b border-white/10">
