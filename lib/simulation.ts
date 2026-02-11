@@ -5,8 +5,10 @@ import { materializeChangePlan } from './engine/materialize-changeplan';
 
 export const SIMULATION_TICK_MS = 400;
 
-export const compileDesignSpecToChangePlan = (designSpec: DesignSpec): ChangePlan =>
-  materializeChangePlan(compileRepoSpec(designSpec));
+export const compileDesignSpecToChangePlan = (
+  designSpec: DesignSpec,
+  options?: { capabilityOwnerOverrides?: Record<string, string> },
+): ChangePlan => materializeChangePlan(compileRepoSpec(designSpec, options));
 
 const operationFingerprint = (operation: ChangeOperation) => `${operation.type}|${operation.target ?? ''}|${operation.message}`;
 

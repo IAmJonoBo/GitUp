@@ -71,7 +71,7 @@ const createCompiledState = (
   capabilityOwnerOverrides: Record<string, string> = {},
 ) => {
   const repoSpec = compileRepoSpec(designSpec, { capabilityOwnerOverrides });
-  const changePlan = compileDesignSpecToChangePlan(designSpec);
+  const changePlan = compileDesignSpecToChangePlan(designSpec, { capabilityOwnerOverrides });
 
   return {
     designSpec,
