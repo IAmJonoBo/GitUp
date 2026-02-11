@@ -21,7 +21,7 @@ const resolveFiles = (designSpec: DesignSpec): string[] => {
   return [...files].sort();
 };
 
-export const compileRepoSpec = (designSpec: DesignSpec): RepoSpec => {
+export const compileRepoSpec = (designSpec: DesignSpec, options?: { capabilityOwnerOverrides?: Record<string, string> }): RepoSpec => {
   const normalized = normalizeDesignSpec(designSpec);
 
   return {
@@ -29,6 +29,6 @@ export const compileRepoSpec = (designSpec: DesignSpec): RepoSpec => {
     packageManager: normalized.stack.packageManager,
     architecture: normalized.architecture,
     files: resolveFiles(normalized),
-    packs: resolvePacks(normalized),
+    packs: resolvePacks(normalized, options),
   };
 };

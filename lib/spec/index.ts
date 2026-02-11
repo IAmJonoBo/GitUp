@@ -131,6 +131,30 @@ export interface RepoPackResolution {
   scripts: Record<string, string>;
   dependencies: Record<string, string>;
   devDependencies: Record<string, string>;
+  selectedPacks: string[];
+  capabilityOwners: Record<string, string[]>;
+  capabilityConflicts: {
+    capability: string;
+    owner: {
+      packId: string;
+      priority: number;
+      effects: {
+        scripts?: Record<string, string>;
+        dependencies?: Record<string, string>;
+        devDependencies?: Record<string, string>;
+      };
+    };
+    challenger: {
+      packId: string;
+      priority: number;
+      effects: {
+        scripts?: Record<string, string>;
+        dependencies?: Record<string, string>;
+        devDependencies?: Record<string, string>;
+      };
+    };
+    downstreamImpact: string;
+  }[];
 }
 
 export interface RepoSpec {
@@ -204,7 +228,8 @@ export interface Preset {
   id: string;
   name: string;
   description: string;
-  config: Partial<DesignSpec>;
+  config?: Partial<DesignSpec>;
+  bundleIds?: string[];
 }
 
 export interface TreeNode {

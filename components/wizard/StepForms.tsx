@@ -6,6 +6,7 @@ import { useStore } from '../../store';
 import { Input, Label, Switch, Button, Badge, Tooltip, TooltipContent, TooltipTrigger, Card, Tabs, TabsList, TabsTrigger, TabsContent } from '../ui/primitives';
 import { DecisionCard } from '../app/DecisionCard';
 import { ApplyScreen } from '../app/ApplyScreen';
+import { ConflictResolutionPanel } from '../app/ConflictResolutionPanel';
 import { RepoStructure, ProjectType, DocFramework, DocStyle, TestFramework, E2EFramework, BuildTool, Linter, Formatter, QualityPlatform, Architecture, Builder, DependencyStrategy, PlanConfig } from '../../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Shield, Zap, BookOpen, Terminal, Box, Globe, Layout, Server, Monitor, Layers, Package, Gauge, FileText, Users, Lock, RefreshCw, Scan, Info, Edit2, ChevronRight, Star, Cpu, ArrowDownCircle, MessagesSquare, Library, TestTube, Play, Beaker, Hammer, Boxes, Code2, CheckCheck, Languages, AlertTriangle, CheckCircle2, GitMerge, GitPullRequest, ListTodo, MessageSquare, Book, Rocket, ScrollText, Key, GitBranch, Workflow, Cloud, Settings, KeyRound, AppWindow, PlayCircle, Plus, X, Tag, Webhook as WebhookIcon, Bot, FileCode, Anchor, PenTool, LayoutTemplate, type LucideIcon } from 'lucide-react';
@@ -657,6 +658,8 @@ export const StepSecurity = () => {
                 ))}
              </div>
 
+             {userMode === 'power' && <ConflictResolutionPanel />}
+
              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                  <div className={cn("p-4 rounded-xl border transition-all", config.security.codeScanning ? "bg-card border-indigo-500/50" : "bg-card border-border")}>
                      <div className="flex justify-between items-start mb-3">
@@ -1205,7 +1208,7 @@ export const StepDocs = () => {
 
 // --- Step 9: Review ---
 export const StepReview = () => {
-    const { config, engineDecisions, workflowPhase } = useStore();
+    const { config, engineDecisions, workflowPhase, userMode } = useStore();
 
     const sections = [
         { title: 'Project', icon: Package, items: [
@@ -1252,6 +1255,8 @@ export const StepReview = () => {
                     <DecisionCard key={decision.key} decision={decision} />
                 ))}
              </div>
+
+             {userMode === 'power' && <ConflictResolutionPanel />}
 
              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {sections.map((s, i) => (
