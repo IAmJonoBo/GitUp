@@ -1,11 +1,19 @@
 import { create } from 'zustand';
-import { ChangePlan, DesignSpec, PlanConfig, PlanConfigPatch, Preset, RepoSpec, SimulationLogEntry } from './types';
+import { ChangePlan, ChangePlanDiff, DesignSpec, EngineDecisionPayload, PlanConfig, PlanConfigPatch, Preset, PublisherAction, RepoSpec, SimulationLogEntry } from './types';
 import { FINAL_WIZARD_STEP, applyPresetConfig, createDefaultPlanConfig, mergePlanConfig } from './lib/plan-config';
-import { SIMULATION_TICK_MS, compileDesignSpecToChangePlan, renderChangePlanSimulationLog } from './lib/simulation';
+import { SIMULATION_TICK_MS, buildChangePlanDiff, compileDesignSpecToChangePlan, createEngineDecisionPayloads, mapChangePlanToPublisherActions, renderChangePlanSimulationLog } from './lib/simulation';
 import { compileRepoSpec } from './lib/engine/compile-repospec';
 
 export type UserMode = 'basic' | 'power';
 export type AppView = 'wizard' | 'presets' | 'settings' | 'help' | 'export';
+export type WorkflowPhase = 'preview' | 'diff' | 'explain' | 'apply';
+
+
+
+interface DiffPromptReason {
+  key: 'preset' | 'stack' | 'visibility' | 'security';
+  label: string;
+}
 
 interface AppState {
   step: number;
@@ -13,6 +21,12 @@ interface AppState {
   designSpec: DesignSpec;
   repoSpec: RepoSpec;
   changePlan: ChangePlan;
+  previousChangePlan: ChangePlan;
+  pendingDiff: ChangePlanDiff | null;
+  diffPromptReason: DiffPromptReason | null;
+  workflowPhase: WorkflowPhase;
+  engineDecisions: EngineDecisionPayload[];
+  publisherActions: PublisherAction[];
   // Backward compatibility for current UI until all consumers migrate.
   config: PlanConfig;
   userMode: UserMode;
@@ -26,6 +40,8 @@ interface AppState {
   setStep: (step: number) => void;
   setUserMode: (mode: UserMode) => void;
   setCurrentView: (view: AppView) => void;
+  setWorkflowPhase: (phase: WorkflowPhase) => void;
+  confirmDiffInterstitial: () => void;
   toggleMobilePreview: (isOpen: boolean) => void;
   updateConfig: (updates: PlanConfigPatch) => void;
   startSimulation: () => void;
@@ -45,12 +61,21 @@ const clearSimulationTimer = () => {
   simulationTimer = null;
 };
 
-const createCompiledState = (designSpec: DesignSpec) => ({
-  designSpec,
-  config: designSpec,
-  repoSpec: compileRepoSpec(designSpec),
-  changePlan: compileDesignSpecToChangePlan(designSpec),
-});
+const createCompiledState = (designSpec: DesignSpec, previousPlan?: ChangePlan) => {
+  const repoSpec = compileRepoSpec(designSpec);
+  const changePlan = compileDesignSpecToChangePlan(designSpec);
+
+  return {
+    designSpec,
+    config: designSpec,
+    repoSpec,
+    changePlan,
+    previousChangePlan: previousPlan ?? changePlan,
+    pendingDiff: previousPlan ? buildChangePlanDiff(previousPlan, changePlan) : null,
+    engineDecisions: createEngineDecisionPayloads(designSpec, repoSpec, changePlan),
+    publisherActions: mapChangePlanToPublisherActions(changePlan),
+  };
+};
 
 const createInitialState = () => createCompiledState(createDefaultPlanConfig());
 
@@ -66,6 +91,7 @@ export const useStore = create<AppState>((set, get) => ({
   customPresets: [],
   theme: 'dark',
   reducedMotion: false,
+  workflowPhase: 'preview',
 
   setStep: (step) =>
     set((state) => ({
@@ -74,20 +100,47 @@ export const useStore = create<AppState>((set, get) => ({
     })),
   setUserMode: (mode) => set({ userMode: mode }),
   setCurrentView: (view) => set({ currentView: view }),
+  setWorkflowPhase: (phase) => set({ workflowPhase: phase }),
+  confirmDiffInterstitial: () => set({ workflowPhase: 'explain', pendingDiff: null, diffPromptReason: null }),
   toggleMobilePreview: (isOpen) => set({ mobilePreviewOpen: isOpen }),
 
   updateConfig: (updates) =>
-    set((state) => createCompiledState(mergePlanConfig(state.designSpec, updates))),
+    set((state) => {
+      const nextSpec = mergePlanConfig(state.designSpec, updates);
+      const compiled = createCompiledState(nextSpec, state.changePlan);
+      const reason =
+        updates.visibility !== undefined
+          ? { key: 'visibility' as const, label: 'repository visibility' }
+          : updates.security !== undefined
+            ? { key: 'security' as const, label: 'security posture' }
+            : updates.stack !== undefined
+              ? { key: 'stack' as const, label: 'language/stack' }
+              : null;
+
+      return {
+        ...compiled,
+        workflowPhase: reason && (compiled.pendingDiff?.added.length || compiled.pendingDiff?.removed.length) ? 'diff' : state.workflowPhase,
+        diffPromptReason: reason && (compiled.pendingDiff?.added.length || compiled.pendingDiff?.removed.length) ? reason : state.diffPromptReason,
+      };
+    }),
 
   applyPreset: (presetConfig) =>
-    set(() => ({
-      ...createCompiledState(applyPresetConfig(presetConfig)),
-      currentView: 'wizard',
-      step: FINAL_WIZARD_STEP,
-      maxStepVisited: FINAL_WIZARD_STEP,
-    })),
+    set((state) => {
+      const compiled = createCompiledState(applyPresetConfig(presetConfig), state.changePlan);
+      const hasDiff = Boolean(compiled.pendingDiff?.added.length || compiled.pendingDiff?.removed.length);
+
+      return {
+        ...compiled,
+        currentView: 'wizard',
+        step: FINAL_WIZARD_STEP,
+        maxStepVisited: FINAL_WIZARD_STEP,
+        workflowPhase: hasDiff ? 'diff' : state.workflowPhase,
+        diffPromptReason: hasDiff ? { key: 'preset', label: 'preset selection' } : state.diffPromptReason,
+      };
+    }),
 
   startSimulation: () => {
+    set({ workflowPhase: 'apply' });
     clearSimulationTimer();
     const steps = renderChangePlanSimulationLog(get().changePlan);
     set({ isSimulating: true, simulationLog: [] });
@@ -113,6 +166,9 @@ export const useStore = create<AppState>((set, get) => ({
       step: 0,
       maxStepVisited: 0,
       ...createInitialState(),
+      workflowPhase: 'preview',
+      pendingDiff: null,
+      diffPromptReason: null,
       isSimulating: false,
       simulationLog: [],
       currentView: 'wizard',

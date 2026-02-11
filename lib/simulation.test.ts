@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createDefaultPlanConfig } from './plan-config';
-import { buildSimulationSteps } from './simulation';
+import { buildChangePlanDiff, buildSimulationSteps, compileDesignSpecToChangePlan, createEngineDecisionPayloads, mapChangePlanToPublisherActions } from './simulation';
+import { compileRepoSpec } from './engine/compile-repospec';
 
 describe('simulation builder', () => {
   it('includes critical files from configuration', () => {
@@ -27,5 +28,35 @@ describe('simulation builder', () => {
     expect(messages).not.toContain('Created README.md');
     expect(messages).not.toContain('Created CONTRIBUTING.md');
     expect(messages).not.toContain('Created .env.example');
+  });
+
+  it('builds plan diffs and publisher actions from change plans', () => {
+    const previous = createDefaultPlanConfig();
+    previous.docs.readme = false;
+
+    const next = createDefaultPlanConfig();
+    next.docs.readme = true;
+
+    const previousPlan = compileDesignSpecToChangePlan(previous);
+    const nextPlan = compileDesignSpecToChangePlan(next);
+    const diff = buildChangePlanDiff(previousPlan, nextPlan);
+
+    expect(diff.added.some((operation) => operation.target === 'README.md')).toBe(true);
+    expect(diff.removed.length).toBe(0);
+
+    const actions = mapChangePlanToPublisherActions(nextPlan);
+    expect(actions.length).toBe(nextPlan.operations.length);
+    expect(actions[0].action).toBe('publish.workflow');
+  });
+
+  it('emits decision payloads across compiler stages', () => {
+    const config = createDefaultPlanConfig();
+    const repoSpec = compileRepoSpec(config);
+    const plan = compileDesignSpecToChangePlan(config);
+
+    const decisions = createEngineDecisionPayloads(config, repoSpec, plan);
+
+    expect(decisions.map((decision) => decision.stage)).toEqual(['normalize', 'repo-spec', 'change-plan']);
+    expect(decisions.every((decision) => decision.why.length > 0)).toBe(true);
   });
 });
