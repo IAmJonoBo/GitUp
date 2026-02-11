@@ -47,7 +47,7 @@ describe('simulation builder', () => {
     const nextRepoSpec = compileRepoSpec(next);
     const actions = mapChangePlanToPublisherActions(next, nextRepoSpec, nextPlan);
     expect(actions.length).toBeGreaterThan(nextPlan.operations.length);
-    expect(actions.some((action) => action.action === 'publish.render' || action.action === 'publish.plan')).toBe(true);
+    expect(actions.some((action) => action.action.endsWith('.render') || action.action.endsWith('.plan'))).toBe(true);
   });
 
 
@@ -75,6 +75,28 @@ describe('simulation builder', () => {
     expect(defaultPlan.operations.some((operation) => operation.message.includes('pack.release.semantic'))).toBe(true);
     expect(overriddenPlan.operations.some((operation) => operation.message.includes('pack.release.gh-release'))).toBe(true);
     expect(defaultPlan.operations).not.toEqual(overriddenPlan.operations);
+  });
+
+  it('produces deterministic publisher actions per target', () => {
+    const config = createDefaultPlanConfig();
+    const repoSpec = compileRepoSpec(config);
+    const changePlan = compileDesignSpecToChangePlan(config);
+
+    const localActions = mapChangePlanToPublisherActions(config, repoSpec, changePlan, { target: 'local' });
+    const prActions = mapChangePlanToPublisherActions(config, repoSpec, changePlan, { target: 'pr' });
+    const createRepoActions = mapChangePlanToPublisherActions(config, repoSpec, changePlan, { target: 'create-repo' });
+
+    expect(localActions).toEqual(mapChangePlanToPublisherActions(config, repoSpec, changePlan, { target: 'local' }));
+    expect(prActions).toEqual(mapChangePlanToPublisherActions(config, repoSpec, changePlan, { target: 'pr' }));
+    expect(createRepoActions).toEqual(mapChangePlanToPublisherActions(config, repoSpec, changePlan, { target: 'create-repo' }));
+
+    expect(localActions.some((action) => action.action.startsWith('local.'))).toBe(true);
+    expect(prActions.some((action) => action.action.startsWith('pr.'))).toBe(true);
+    expect(createRepoActions.some((action) => action.action.startsWith('create-repo.'))).toBe(true);
+
+    expect(localActions).not.toEqual(prActions);
+    expect(prActions).not.toEqual(createRepoActions);
+    expect(localActions).not.toEqual(createRepoActions);
   });
 
   it('emits decision payloads across compiler stages', () => {

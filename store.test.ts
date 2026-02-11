@@ -26,4 +26,22 @@ describe('store capability conflict resolution', () => {
     expect(after.changePlan.operations.some((operation) => operation.message.includes('pack.release.gh-release'))).toBe(true);
     expect(after.changePlan.operations).not.toEqual(before.changePlan.operations);
   });
+
+  it('recomputes publisher actions when publish target changes', () => {
+    const initial = useStore.getState();
+    const initialActions = initial.publisherActions;
+
+    useStore.getState().setPublishTarget('pr');
+
+    const prTarget = useStore.getState();
+    expect(prTarget.publishTarget).toBe('pr');
+    expect(prTarget.publisherActions).not.toEqual(initialActions);
+    expect(prTarget.publisherActions.some((action) => action.action.startsWith('pr.'))).toBe(true);
+
+    useStore.getState().setPublishTarget('create-repo');
+
+    const createRepoTarget = useStore.getState();
+    expect(createRepoTarget.publishTarget).toBe('create-repo');
+    expect(createRepoTarget.publisherActions.some((action) => action.action.startsWith('create-repo.'))).toBe(true);
+  });
 });
