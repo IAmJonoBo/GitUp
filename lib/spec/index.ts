@@ -275,6 +275,13 @@ export interface EngineDecisionPayload {
   why: string;
   tradeOffs: string[];
   alternatives: string[];
+  rankedCandidates?: {
+    label: string;
+    score: number;
+    botPrsPerMonth: number;
+    ciMinutesProxy: number;
+    securityPostureNote: string;
+  }[];
   confidence: "High" | "Medium" | "Low";
 }
 

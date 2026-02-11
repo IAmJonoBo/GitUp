@@ -177,5 +177,11 @@ describe("simulation builder", () => {
       "change-plan",
     ]);
     expect(decisions.every((decision) => decision.why.length > 0)).toBe(true);
+
+    const publishingDecision = decisions.find(
+      (decision) => decision.key === "change-plan-publishing",
+    );
+    expect(publishingDecision?.rankedCandidates).toHaveLength(3);
+    expect(publishingDecision?.alternatives).toHaveLength(2);
   });
 });
