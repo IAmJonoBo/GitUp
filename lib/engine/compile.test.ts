@@ -38,26 +38,49 @@ describe("spec compiler determinism", () => {
     expect(highNoiseRepoSpec.automation.ci.matrixBreadth).toBe("broad");
   });
 
-  it("maps governance posture to ruleset and security defaults", () => {
+  it("maps governance posture transitions to predictable checks and branch policy outputs", () => {
     const designSpec = createDefaultPlanConfig();
-    designSpec.governancePosture = "Strict";
     designSpec.noiseBudget = "medium";
-
-    const strictRepoSpec = compileRepoSpec(designSpec);
-    expect(strictRepoSpec.governance.ruleset).toBe("strict");
-    expect(strictRepoSpec.governance.branch.requireSignedCommits).toBe(true);
-    expect(strictRepoSpec.governance.statusChecks).toContain("codeql");
-    expect(
-      strictRepoSpec.governance.securityDefaults.dependencyUpdateFrequency,
-    ).toBe("weekly");
 
     designSpec.governancePosture = "Relaxed";
     const relaxedRepoSpec = compileRepoSpec(designSpec);
     expect(relaxedRepoSpec.governance.ruleset).toBe("lenient");
     expect(relaxedRepoSpec.governance.branch.requirePr).toBe(false);
-    expect(relaxedRepoSpec.governance.securityDefaults.codeScanning).toBe(
-      false,
+    expect(relaxedRepoSpec.governance.branch.requiredReviewers).toBe(0);
+    expect(relaxedRepoSpec.governance.statusChecks).toEqual([]);
+    expect(relaxedRepoSpec.governance.artifactModel.requiredChecks.checks).toEqual(
+      [],
     );
+    expect(relaxedRepoSpec.governance.securityDefaults.codeScanning).toBe(false);
+
+    designSpec.governancePosture = "Team Standard";
+    const standardRepoSpec = compileRepoSpec(designSpec);
+    expect(standardRepoSpec.governance.ruleset).toBe("standard");
+    expect(standardRepoSpec.governance.branch.requirePr).toBe(true);
+    expect(standardRepoSpec.governance.branch.requiredReviewers).toBe(1);
+    expect(standardRepoSpec.governance.statusChecks).toEqual([
+      "lint",
+      "test",
+      "build",
+    ]);
+    expect(
+      standardRepoSpec.governance.artifactModel.rulesetProfile.label,
+    ).toBe("Team Standard");
+
+    designSpec.governancePosture = "Strict";
+    const strictRepoSpec = compileRepoSpec(designSpec);
+    expect(strictRepoSpec.governance.ruleset).toBe("strict");
+    expect(strictRepoSpec.governance.branch.requireSignedCommits).toBe(true);
+    expect(strictRepoSpec.governance.branch.requiredReviewers).toBe(2);
+    expect(strictRepoSpec.governance.statusChecks).toEqual([
+      "lint",
+      "test",
+      "build",
+      "codeql",
+    ]);
+    expect(
+      strictRepoSpec.governance.securityDefaults.dependencyUpdateFrequency,
+    ).toBe("weekly");
   });
 
   it("recompiles idempotently from the same DesignSpec", () => {

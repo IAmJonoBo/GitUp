@@ -5,6 +5,47 @@ export interface RenderOptions {
   enableRustExperimental?: boolean;
 }
 
+const buildGovernanceArtifacts = (
+  repoSpec: RepoSpec,
+  dryRun: boolean,
+): PublisherArtifact[] => {
+  const { artifactModel, posture, securityDefaults } = repoSpec.governance;
+
+  const governanceHints = {
+    posture,
+    rulesetProfile: artifactModel.rulesetProfile,
+    requiredChecks: artifactModel.requiredChecks,
+    reviewConstraints: artifactModel.reviewConstraints,
+    securityDefaults,
+  };
+
+  return [
+    {
+      path: ".github/governance-hints.json",
+      kind: "artifact",
+      content: JSON.stringify(governanceHints, null, 2),
+      description: dryRun
+        ? "Would publish governance hints artifact"
+        : "Published governance hints artifact",
+    },
+    {
+      path: ".github/rulesets/preview.json",
+      kind: "planned-action",
+      content: JSON.stringify(
+        {
+          mode: "preview",
+          ruleset: artifactModel.rulesetProfile,
+          requiredChecks: artifactModel.requiredChecks,
+          reviewConstraints: artifactModel.reviewConstraints,
+        },
+        null,
+        2,
+      ),
+      description: "Governance ruleset preview (non-destructive)",
+    },
+  ];
+};
+
 const buildProjenArtifacts = (
   designSpec: DesignSpec,
   repoSpec: RepoSpec,
@@ -72,11 +113,16 @@ export const renderPublisherArtifacts = (
   repoSpec: RepoSpec,
   { dryRun = true, enableRustExperimental = false }: RenderOptions = {},
 ): PublisherArtifact[] => {
+  const governanceArtifacts = buildGovernanceArtifacts(repoSpec, dryRun);
+
   if (
     designSpec.stack.language === "TypeScript" ||
     designSpec.stack.language === "Python"
   ) {
-    return buildProjenArtifacts(designSpec, repoSpec, dryRun);
+    return [
+      ...buildProjenArtifacts(designSpec, repoSpec, dryRun),
+      ...governanceArtifacts,
+    ];
   }
 
   if (designSpec.stack.language === "Rust") {
@@ -84,15 +130,18 @@ export const renderPublisherArtifacts = (
       designSpec.stack.rustMode === "projen-experimental" &&
       enableRustExperimental
     ) {
-      return buildRustExperimentalArtifacts(dryRun);
+      return [...buildRustExperimentalArtifacts(dryRun), ...governanceArtifacts];
     }
 
-    return buildRustTemplateArtifacts(repoSpec, dryRun);
+    return [...buildRustTemplateArtifacts(repoSpec, dryRun), ...governanceArtifacts];
   }
 
-  return repoSpec.files.slice(0, 4).map((path) => ({
-    path,
-    kind: dryRun ? "planned-action" : "artifact",
-    description: dryRun ? `Would publish ${path}` : `Published ${path}`,
-  }));
+  return [
+    ...repoSpec.files.slice(0, 4).map((path) => ({
+      path,
+      kind: dryRun ? ("planned-action" as const) : ("artifact" as const),
+      description: dryRun ? `Would publish ${path}` : `Published ${path}`,
+    })),
+    ...governanceArtifacts,
+  ];
 };

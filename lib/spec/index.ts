@@ -231,6 +231,7 @@ export interface RepoSpec {
       requireSignedCommits: boolean;
     };
     statusChecks: string[];
+    artifactModel: GovernanceArtifactModel;
     securityDefaults: {
       codeScanning: boolean;
       secretScanning: boolean;
@@ -240,6 +241,31 @@ export interface RepoSpec {
   };
   files: string[];
   packs: RepoPackResolution;
+}
+
+export interface GovernanceRulesetProfile {
+  id: "lenient" | "standard" | "strict";
+  label: "Relaxed" | "Team Standard" | "Strict";
+  description: string;
+}
+
+export interface GovernanceRequiredChecks {
+  requireStatusChecks: boolean;
+  checks: string[];
+}
+
+export interface GovernanceReviewConstraints {
+  requirePr: boolean;
+  requiredReviewers: number;
+  requireCodeOwners: boolean;
+  requireLinearHistory: boolean;
+  requireSignedCommits: boolean;
+}
+
+export interface GovernanceArtifactModel {
+  rulesetProfile: GovernanceRulesetProfile;
+  requiredChecks: GovernanceRequiredChecks;
+  reviewConstraints: GovernanceReviewConstraints;
 }
 
 export type ChangeOperationType =

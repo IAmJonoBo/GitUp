@@ -1,4 +1,9 @@
-import { DesignSpec, RepoSpec } from "../spec";
+import {
+  DesignSpec,
+  GovernanceArtifactModel,
+  GovernancePosture,
+  RepoSpec,
+} from "../spec";
 import { normalizeDesignSpec } from "./normalize";
 import { resolvePacks } from "./resolve-packs";
 import { resolveAutomationFromNoise, resolveNoiseLevel } from "./recommend";
@@ -30,71 +35,95 @@ const resolveFiles = (designSpec: DesignSpec): string[] => {
 const compileAutomation = (designSpec: DesignSpec): RepoSpec["automation"] =>
   resolveAutomationFromNoise(resolveNoiseLevel(designSpec.noiseBudget));
 
-const compileGovernance = (
-  designSpec: DesignSpec,
-  automation: RepoSpec["automation"],
-): RepoSpec["governance"] => {
-  const frequency = automation.dependabot.schedule;
-
-  if (designSpec.governancePosture === "Relaxed") {
+const resolveGovernanceArtifactModel = (
+  posture: GovernancePosture,
+): GovernanceArtifactModel => {
+  if (posture === "Relaxed") {
     return {
-      posture: "Relaxed",
-      ruleset: "lenient",
-      branch: {
+      rulesetProfile: {
+        id: "lenient",
+        label: "Relaxed",
+        description:
+          "Minimal branch protections for fast iteration and optional policy checks.",
+      },
+      requiredChecks: {
+        requireStatusChecks: false,
+        checks: [],
+      },
+      reviewConstraints: {
         requirePr: false,
         requiredReviewers: 0,
-        requireStatusChecks: false,
-        requireLinearHistory: false,
         requireCodeOwners: false,
+        requireLinearHistory: false,
         requireSignedCommits: false,
-      },
-      statusChecks: [],
-      securityDefaults: {
-        codeScanning: false,
-        secretScanning: false,
-        dependencyUpdates: true,
-        dependencyUpdateFrequency: frequency,
       },
     };
   }
 
-  if (designSpec.governancePosture === "Strict") {
+  if (posture === "Strict") {
     return {
-      posture: "Strict",
-      ruleset: "strict",
-      branch: {
+      rulesetProfile: {
+        id: "strict",
+        label: "Strict",
+        description:
+          "High-assurance governance with mandatory reviews, checks, and signed history.",
+      },
+      requiredChecks: {
+        requireStatusChecks: true,
+        checks: ["lint", "test", "build", "codeql"],
+      },
+      reviewConstraints: {
         requirePr: true,
         requiredReviewers: 2,
-        requireStatusChecks: true,
-        requireLinearHistory: true,
         requireCodeOwners: true,
+        requireLinearHistory: true,
         requireSignedCommits: true,
-      },
-      statusChecks: ["lint", "test", "build", "codeql"],
-      securityDefaults: {
-        codeScanning: true,
-        secretScanning: true,
-        dependencyUpdates: true,
-        dependencyUpdateFrequency: frequency,
       },
     };
   }
 
   return {
-    posture: "Team Standard",
-    ruleset: "standard",
-    branch: {
+    rulesetProfile: {
+      id: "standard",
+      label: "Team Standard",
+      description:
+        "Balanced governance with required PRs and core CI checks for team delivery.",
+    },
+    requiredChecks: {
+      requireStatusChecks: true,
+      checks: ["lint", "test", "build"],
+    },
+    reviewConstraints: {
       requirePr: true,
       requiredReviewers: 1,
-      requireStatusChecks: true,
-      requireLinearHistory: true,
       requireCodeOwners: false,
+      requireLinearHistory: true,
       requireSignedCommits: false,
     },
-    statusChecks: ["lint", "test", "build"],
+  };
+};
+
+const compileGovernance = (
+  designSpec: DesignSpec,
+  automation: RepoSpec["automation"],
+): RepoSpec["governance"] => {
+  const frequency = automation.dependabot.schedule;
+  const artifactModel = resolveGovernanceArtifactModel(
+    designSpec.governancePosture,
+  );
+
+  return {
+    posture: designSpec.governancePosture,
+    ruleset: artifactModel.rulesetProfile.id,
+    branch: {
+      ...artifactModel.reviewConstraints,
+      requireStatusChecks: artifactModel.requiredChecks.requireStatusChecks,
+    },
+    statusChecks: [...artifactModel.requiredChecks.checks],
+    artifactModel,
     securityDefaults: {
-      codeScanning: true,
-      secretScanning: true,
+      codeScanning: artifactModel.rulesetProfile.id !== "lenient",
+      secretScanning: artifactModel.rulesetProfile.id !== "lenient",
       dependencyUpdates: true,
       dependencyUpdateFrequency: frequency,
     },
