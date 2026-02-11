@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Card, Button, Badge, Input, Label } from '../ui/primitives';
 import { useStore } from '../../store';
-import { PlanConfigPatch, Preset, ProjectType, RepoStructure } from '../../types';
+import { PlanConfigPatch, Preset } from '../../types';
 import { Rocket, Shield, Box, Layout, Server, BookOpen, Layers, Plus, Save, Trash2, X, type LucideIcon } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { cn } from '../../lib/utils';
@@ -12,7 +12,8 @@ interface PresetCardData {
   id: string;
   name: string;
   description: string;
-  config: PlanConfigPatch;
+  config?: PlanConfigPatch;
+  bundleIds?: string[];
   tone: PresetTone;
   icon?: LucideIcon;
 }
@@ -62,13 +63,10 @@ const governancePresets: PresetCardData[] = [
     description: 'Perfect for hackathons or hobby projects. Minimal friction, standard defaults.',
     icon: Rocket,
     tone: 'blue',
+    bundleIds: ['bundle.governance.solo-quickstart'],
     config: {
-      visibility: 'public',
-      type: ProjectType.WEB,
-      structure: RepoStructure.POLY,
-      quality: { linter: 'ESLint', testing: false, coverageTarget: 0 },
-      ci: { runTests: true, buildArtifacts: true, automaticRelease: false, deployToCloud: true },
-      security: { codeScanning: false, secretScanning: true, dependencyUpdates: true, dependencyUpdateFrequency: 'monthly' },
+      type: 'Web App',
+      structure: 'Polyrepo',
     },
   },
   {
@@ -77,13 +75,10 @@ const governancePresets: PresetCardData[] = [
     description: 'Balanced for small to medium teams. Enforces code quality without slowing you down.',
     icon: Box,
     tone: 'purple',
+    bundleIds: ['bundle.governance.team-standard'],
     config: {
-      visibility: 'private',
-      type: ProjectType.SERVICE,
-      structure: RepoStructure.POLY,
-      quality: { linter: 'ESLint', testing: true, coverageTarget: 80 },
-      ci: { runTests: true, buildArtifacts: true, automaticRelease: true, deployToCloud: false },
-      security: { codeScanning: true, secretScanning: true, dependencyUpdates: true, dependencyUpdateFrequency: 'weekly' },
+      type: 'Service',
+      structure: 'Polyrepo',
     },
   },
   {
@@ -92,14 +87,9 @@ const governancePresets: PresetCardData[] = [
     description: 'Maximum security and governance. Strict gates, full documentation required.',
     icon: Shield,
     tone: 'emerald',
+    bundleIds: ['bundle.governance.enterprise'],
     config: {
-      visibility: 'private',
-      type: ProjectType.LIBRARY,
-      structure: RepoStructure.MONO,
-      quality: { linter: 'ESLint', testing: true, coverageTarget: 95 },
-      ci: { runTests: true, buildArtifacts: true, automaticRelease: true, deployToCloud: false },
-      security: { codeScanning: true, secretScanning: true, dependencyUpdates: true, dependencyUpdateFrequency: 'daily' },
-      docs: { readme: true, contributing: true, adr: true, codeowners: true },
+      type: 'Library',
     },
   },
 ];
@@ -111,21 +101,9 @@ const stackTemplates: PresetCardData[] = [
     description: 'Opinionated web stack with TypeScript, Tailwind, Vitest, and Playwright.',
     icon: Layout,
     tone: 'cyan',
+    bundleIds: ['bundle.stack.next-full'],
     config: {
-      projectName: 'next-app-starter',
-      type: ProjectType.WEB,
-      stack: { language: 'TypeScript', framework: 'Next.js', packageManager: 'pnpm', builder: 'None' },
-      quality: {
-        linter: 'ESLint',
-        formatter: 'Prettier',
-        testing: true,
-        testFramework: 'Vitest',
-        e2eTests: true,
-        e2eFramework: 'Playwright',
-        coverageTarget: 80,
-      },
-      ci: { runTests: true, buildArtifacts: true, deployToCloud: true },
-      basics: { i18n: true },
+      type: 'Web App',
     },
   },
   {
@@ -134,15 +112,7 @@ const stackTemplates: PresetCardData[] = [
     description: 'Go microservice with Gin, Docker builds, and Clean Architecture folders.',
     icon: Server,
     tone: 'sky',
-    config: {
-      projectName: 'go-service-api',
-      type: ProjectType.SERVICE,
-      architecture: 'Clean',
-      stack: { language: 'Go', framework: 'Gin', packageManager: 'npm', builder: 'Go Build' },
-      quality: { linter: 'None', testing: true, testFramework: 'Go Test', coverageTarget: 70 },
-      ci: { runTests: true, buildArtifacts: true, deployToCloud: true },
-      security: { codeScanning: true },
-    },
+    bundleIds: ['bundle.stack.go-api'],
   },
   {
     id: 'docs-site',
@@ -150,12 +120,9 @@ const stackTemplates: PresetCardData[] = [
     description: 'Static documentation site pre-configured for GitHub Pages deployment.',
     icon: BookOpen,
     tone: 'orange',
+    bundleIds: ['bundle.stack.docs-site'],
     config: {
-      projectName: 'docs-portal',
-      type: ProjectType.WEB,
-      stack: { language: 'TypeScript', framework: 'VitePress', packageManager: 'yarn', builder: 'Vite' },
-      docs: { framework: 'vitepress', deployToPages: true, readme: true },
-      ci: { runTests: false, buildArtifacts: true, deployToCloud: false },
+      type: 'Web App',
     },
   },
 ];
@@ -175,6 +142,7 @@ export const Presets = () => {
       name: trimmedName,
       description: newPresetDesc || 'Custom configuration',
       config: structuredClone(currentConfig),
+      bundleIds: [],
     };
 
     addCustomPreset(preset);
@@ -210,7 +178,7 @@ export const Presets = () => {
             <Button
               className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-white/5"
               variant="ghost"
-              onClick={() => applyPreset(preset.config)}
+              onClick={() => applyPreset({ config: preset.config, bundleIds: preset.bundleIds })}
             >
               Use Template
             </Button>

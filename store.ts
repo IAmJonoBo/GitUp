@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { ChangePlan, ChangePlanDiff, DesignSpec, EngineDecisionPayload, PlanConfig, PlanConfigPatch, Preset, PublisherAction, RepoSpec, SimulationLogEntry } from './types';
+import { resolvePresetBundlesToPatch } from './lib/packs';
 import { FINAL_WIZARD_STEP, applyPresetConfig, createDefaultPlanConfig, mergePlanConfig } from './lib/plan-config';
 import { SIMULATION_TICK_MS, buildChangePlanDiff, compileDesignSpecToChangePlan, createEngineDecisionPayloads, mapChangePlanToPublisherActions, renderChangePlanSimulationLog } from './lib/simulation';
 import { compileRepoSpec } from './lib/engine/compile-repospec';
@@ -37,6 +38,7 @@ interface AppState {
   customPresets: Preset[];
   theme: 'dark' | 'light';
   reducedMotion: boolean;
+  capabilityOwnerOverrides: Record<string, string>;
   setStep: (step: number) => void;
   setUserMode: (mode: UserMode) => void;
   setCurrentView: (view: AppView) => void;
@@ -46,11 +48,12 @@ interface AppState {
   updateConfig: (updates: PlanConfigPatch) => void;
   startSimulation: () => void;
   reset: () => void;
-  applyPreset: (config: PlanConfigPatch) => void;
+  applyPreset: (preset: { config?: PlanConfigPatch; bundleIds?: string[] }) => void;
   addCustomPreset: (preset: Preset) => void;
   deleteCustomPreset: (id: string) => void;
   setTheme: (theme: 'dark' | 'light') => void;
   setReducedMotion: (enabled: boolean) => void;
+  resolveCapabilityConflict: (capability: string, ownerPackId: string) => void;
 }
 
 let simulationTimer: ReturnType<typeof setInterval> | null = null;
@@ -61,8 +64,13 @@ const clearSimulationTimer = () => {
   simulationTimer = null;
 };
 
-const createCompiledState = (designSpec: DesignSpec, previousPlan?: ChangePlan, userMode: UserMode = 'basic') => {
-  const repoSpec = compileRepoSpec(designSpec);
+const createCompiledState = (
+  designSpec: DesignSpec,
+  previousPlan?: ChangePlan,
+  userMode: UserMode = 'basic',
+  capabilityOwnerOverrides: Record<string, string> = {},
+) => {
+  const repoSpec = compileRepoSpec(designSpec, { capabilityOwnerOverrides });
   const changePlan = compileDesignSpecToChangePlan(designSpec);
 
   return {
@@ -77,7 +85,7 @@ const createCompiledState = (designSpec: DesignSpec, previousPlan?: ChangePlan, 
   };
 };
 
-const createInitialState = () => createCompiledState(createDefaultPlanConfig(), undefined, 'basic');
+const createInitialState = () => createCompiledState(createDefaultPlanConfig(), undefined, 'basic', {});
 
 export const useStore = create<AppState>((set, get) => ({
   ...createInitialState(),
@@ -91,6 +99,7 @@ export const useStore = create<AppState>((set, get) => ({
   customPresets: [],
   theme: 'dark',
   reducedMotion: false,
+  capabilityOwnerOverrides: {},
   workflowPhase: 'preview',
 
   setStep: (step) =>
@@ -111,7 +120,7 @@ export const useStore = create<AppState>((set, get) => ({
   updateConfig: (updates) =>
     set((state) => {
       const nextSpec = mergePlanConfig(state.designSpec, updates);
-      const compiled = createCompiledState(nextSpec, state.changePlan, state.userMode);
+      const compiled = createCompiledState(nextSpec, state.changePlan, state.userMode, state.capabilityOwnerOverrides);
       const reason =
         updates.visibility !== undefined
           ? { key: 'visibility' as const, label: 'repository visibility' }
@@ -128,9 +137,11 @@ export const useStore = create<AppState>((set, get) => ({
       };
     }),
 
-  applyPreset: (presetConfig) =>
+  applyPreset: (preset) =>
     set((state) => {
-      const compiled = createCompiledState(applyPresetConfig(presetConfig), state.changePlan, state.userMode);
+      const bundlePatch = resolvePresetBundlesToPatch(preset.bundleIds ?? []);
+      const presetPatch = { ...bundlePatch, ...(preset.config ?? {}) };
+      const compiled = createCompiledState(applyPresetConfig(presetPatch), state.changePlan, state.userMode, state.capabilityOwnerOverrides);
       const hasDiff = Boolean(compiled.pendingDiff?.added.length || compiled.pendingDiff?.removed.length);
 
       return {
@@ -176,6 +187,7 @@ export const useStore = create<AppState>((set, get) => ({
       isSimulating: false,
       simulationLog: [],
       currentView: 'wizard',
+      capabilityOwnerOverrides: {},
     });
   },
 
@@ -190,4 +202,20 @@ export const useStore = create<AppState>((set, get) => ({
 
   setTheme: (theme) => set({ theme }),
   setReducedMotion: (enabled) => set({ reducedMotion: enabled }),
+
+  resolveCapabilityConflict: (capability, ownerPackId) =>
+    set((state) => {
+      const capabilityOwnerOverrides = {
+        ...state.capabilityOwnerOverrides,
+        [capability]: ownerPackId,
+      };
+      const compiled = createCompiledState(state.designSpec, state.changePlan, state.userMode, capabilityOwnerOverrides);
+
+      return {
+        ...compiled,
+        capabilityOwnerOverrides,
+      };
+    }),
+
+
 }));

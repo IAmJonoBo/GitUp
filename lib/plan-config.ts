@@ -150,5 +150,5 @@ export const mergePlanConfig = (base: PlanConfig, updates: PlanConfigPatch): Pla
   },
 });
 
-export const applyPresetConfig = (preset: PlanConfigPatch): PlanConfig =>
-  mergePlanConfig(createDefaultPlanConfig(), preset);
+export const applyPresetConfig = (presetPatch: PlanConfigPatch): PlanConfig =>
+  mergePlanConfig(createDefaultPlanConfig(), presetPatch);
