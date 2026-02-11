@@ -50,6 +50,23 @@ describe("store capability conflict resolution", () => {
     );
   });
 
+
+  it("includes Rust mode decision payload when stack language is Rust", () => {
+    useStore.getState().updateConfig({
+      stack: {
+        language: "Rust",
+        framework: "Axum",
+        packageManager: "cargo",
+        rustMode: "template",
+      },
+    });
+
+    const state = useStore.getState();
+    expect(
+      state.engineDecisions.some((decision) => decision.key === "rust-mode"),
+    ).toBe(true);
+  });
+
   it("recomputes publisher actions when publish target changes", () => {
     const initial = useStore.getState();
     const initialActions = initial.publisherActions;
