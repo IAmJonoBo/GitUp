@@ -160,6 +160,11 @@ export interface RepoPackResolution {
     };
     downstreamImpact: string;
   }[];
+  packConflicts: {
+    winnerPackId: string;
+    droppedPackId: string;
+    reason: string;
+  }[];
 }
 
 export interface RepoSpec {
