@@ -243,7 +243,7 @@ const stackSchema = z.object({
 });
 
 export const StepStack = () => {
-    const { config, updateConfig } = useStore();
+    const { config, updateConfig, userMode } = useStore();
     const { register, formState: { errors } } = useForm({
         resolver: zodResolver(stackSchema),
         defaultValues: { languageVersion: config.stack.languageVersion },
@@ -292,7 +292,7 @@ export const StepStack = () => {
                      {languages.map(l => (
                          <div 
                             key={l.id}
-                            onClick={() => updateConfig({ stack: { ...config.stack, language: l.id, framework: frameworks[l.id][0], packageManager: pkgManagers[l.id][0], builder: l.id === 'TypeScript' ? 'Vite' : 'None' } })}
+                            onClick={() => updateConfig({ stack: { ...config.stack, language: l.id, framework: frameworks[l.id][0], packageManager: pkgManagers[l.id][0], builder: l.id === 'TypeScript' ? 'Vite' : 'None', rustMode: l.id === 'Rust' ? config.stack.rustMode : 'template' } })}
                             className={cn(
                                 "flex flex-col items-center gap-2 min-w-[80px] p-3 rounded-xl border cursor-pointer transition-all",
                                 config.stack.language === l.id ? "bg-blue-500/10 border-blue-500 text-blue-500" : "bg-card border-border text-muted-foreground hover:text-foreground"
@@ -323,6 +323,39 @@ export const StepStack = () => {
                              </div>
                          ))}
                      </div>
+
+
+
+                     {config.stack.language === 'Rust' && (
+                        <div className="mt-6">
+                            <Label className="mb-2 block">Rust Mode</Label>
+                            <div className="space-y-2">
+                                {[
+                                  { id: 'template', label: 'Template (recommended)', helper: 'Stable template renderer path.' },
+                                  { id: 'projen-experimental', label: 'Projen Rust (experimental)', helper: 'Guarded by Power mode feature flag.' },
+                                ].map((mode) => {
+                                  const disabled = mode.id === 'projen-experimental' && userMode !== 'power';
+                                  return (
+                                    <div
+                                      key={mode.id}
+                                      onClick={() => !disabled && updateConfig({ stack: { ...config.stack, rustMode: mode.id as PlanConfig['stack']['rustMode'] } })}
+                                      className={cn(
+                                        'flex items-center justify-between p-2.5 rounded-lg border text-sm transition-all',
+                                        disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
+                                        config.stack.rustMode === mode.id ? 'bg-accent border-zinc-500 text-foreground' : 'bg-card border-border text-muted-foreground hover:bg-accent',
+                                      )}
+                                    >
+                                      <div>
+                                        <div>{mode.label}</div>
+                                        <div className="text-[10px]">{mode.helper}</div>
+                                      </div>
+                                      {config.stack.rustMode === mode.id && <Check className="w-3.5 h-3.5 text-foreground" />}
+                                    </div>
+                                  );
+                                })}
+                            </div>
+                        </div>
+                     )}
 
                      <div>
                         <Label className="mb-2 block">Version Target</Label>

@@ -82,6 +82,7 @@ export interface DesignSpec {
   };
   stack: {
     language: 'TypeScript' | 'Go' | 'Rust' | 'Python' | 'Java' | 'Ruby';
+    rustMode: 'template' | 'projen-experimental';
     languageVersion: string;
     framework: string;
     packageManager: 'npm' | 'pnpm' | 'yarn' | 'cargo' | 'pip' | 'pipenv' | 'bun' | 'maven' | 'gradle' | 'bundler' | 'poetry' | 'go mod';
@@ -175,6 +176,13 @@ export interface PublisherAction {
   action: string;
   target: string;
   sourceOperationId: string;
+}
+
+export interface PublisherArtifact {
+  path: string;
+  kind: 'file' | 'artifact' | 'planned-action';
+  content?: string;
+  description: string;
 }
 
 export type DeepPartial<T> = {

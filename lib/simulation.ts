@@ -1,4 +1,5 @@
 import { ChangeOperation, ChangePlan, ChangePlanDiff, DesignSpec, EngineDecisionPayload, PublisherAction, RepoSpec, SimulationLogEntry } from '../types';
+import { publishFromChangePlan } from './publisher';
 import { compileRepoSpec } from './engine/compile-repospec';
 import { materializeChangePlan } from './engine/materialize-changeplan';
 
@@ -67,22 +68,12 @@ export const createEngineDecisionPayloads = (
   ];
 };
 
-export const mapChangePlanToPublisherActions = (changePlan: ChangePlan): PublisherAction[] =>
-  changePlan.operations.map((operation, index) => ({
-    id: `publisher-${index + 1}`,
-    action:
-      operation.type === 'create_file'
-        ? 'publish.file'
-        : operation.type === 'install'
-          ? 'publish.install'
-          : operation.type === 'quality'
-            ? 'publish.quality-gates'
-            : operation.type === 'complete'
-              ? 'publish.finalize'
-              : 'publish.workflow',
-    target: operation.target ?? operation.message,
-    sourceOperationId: operation.id,
-  }));
+export const mapChangePlanToPublisherActions = (
+  designSpec: DesignSpec,
+  repoSpec: RepoSpec,
+  changePlan: ChangePlan,
+  options?: { dryRun?: boolean; userMode?: 'basic' | 'power' },
+): PublisherAction[] => publishFromChangePlan(designSpec, repoSpec, changePlan, options);
 
 export const renderChangePlanSimulationLog = (changePlan: ChangePlan): SimulationLogEntry[] =>
   changePlan.operations.map((operation) => ({
