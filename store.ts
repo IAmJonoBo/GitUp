@@ -38,6 +38,46 @@ interface DiffPromptReason {
   label: string;
 }
 
+const DIFF_PROMPT_REASONS: Record<DiffPromptReason["key"], DiffPromptReason> = {
+  preset: { key: "preset", label: "preset selection" },
+  stack: { key: "stack", label: "language/stack" },
+  visibility: { key: "visibility", label: "repository visibility" },
+  security: { key: "security", label: "security posture" },
+};
+
+const hasPendingDiffOperations = (diff: ChangePlanDiff | null) =>
+  Boolean(diff?.added.length || diff?.removed.length);
+
+const evaluateDiffPromptReason = ({
+  fromPreset,
+  updates,
+}: {
+  fromPreset?: boolean;
+  updates?: PlanConfigPatch;
+}): DiffPromptReason | null => {
+  if (fromPreset) {
+    return DIFF_PROMPT_REASONS.preset;
+  }
+
+  if (!updates) {
+    return null;
+  }
+
+  if (updates.stack !== undefined) {
+    return DIFF_PROMPT_REASONS.stack;
+  }
+
+  if (updates.visibility !== undefined) {
+    return DIFF_PROMPT_REASONS.visibility;
+  }
+
+  if (updates.security !== undefined) {
+    return DIFF_PROMPT_REASONS.security;
+  }
+
+  return null;
+};
+
 interface AppState {
   step: number;
   maxStepVisited: number;
@@ -68,6 +108,7 @@ interface AppState {
   setCurrentView: (view: AppView) => void;
   setWorkflowPhase: (phase: WorkflowPhase) => void;
   confirmDiffInterstitial: () => void;
+  stayInPreview: () => void;
   toggleMobilePreview: (isOpen: boolean) => void;
   updateConfig: (updates: PlanConfigPatch) => void;
   startSimulation: () => void;
@@ -191,6 +232,12 @@ export const useStore = create<AppState>((set, get) => ({
       pendingDiff: null,
       diffPromptReason: null,
     }),
+  stayInPreview: () =>
+    set({
+      workflowPhase: "preview",
+      pendingDiff: null,
+      diffPromptReason: null,
+    }),
   toggleMobilePreview: (isOpen) => set({ mobilePreviewOpen: isOpen }),
 
   updateConfig: (updates) =>
@@ -203,29 +250,14 @@ export const useStore = create<AppState>((set, get) => ({
         state.capabilityOwnerOverrides,
         state.publishTarget,
       );
-      const reason =
-        updates.visibility !== undefined
-          ? { key: "visibility" as const, label: "repository visibility" }
-          : updates.security !== undefined
-            ? { key: "security" as const, label: "security posture" }
-            : updates.stack !== undefined
-              ? { key: "stack" as const, label: "language/stack" }
-              : null;
+      const reason = evaluateDiffPromptReason({ updates });
+      const hasDiff = hasPendingDiffOperations(compiled.pendingDiff);
+      const shouldPromptForDiff = Boolean(reason && hasDiff);
 
       return {
         ...compiled,
-        workflowPhase:
-          reason &&
-          (compiled.pendingDiff?.added.length ||
-            compiled.pendingDiff?.removed.length)
-            ? "diff"
-            : state.workflowPhase,
-        diffPromptReason:
-          reason &&
-          (compiled.pendingDiff?.added.length ||
-            compiled.pendingDiff?.removed.length)
-            ? reason
-            : state.diffPromptReason,
+        workflowPhase: shouldPromptForDiff ? "diff" : state.workflowPhase,
+        diffPromptReason: shouldPromptForDiff ? reason : null,
       };
     }),
 
@@ -240,20 +272,17 @@ export const useStore = create<AppState>((set, get) => ({
         state.capabilityOwnerOverrides,
         state.publishTarget,
       );
-      const hasDiff = Boolean(
-        compiled.pendingDiff?.added.length ||
-        compiled.pendingDiff?.removed.length,
-      );
+      const reason = evaluateDiffPromptReason({ fromPreset: true });
+      const hasDiff = hasPendingDiffOperations(compiled.pendingDiff);
+      const shouldPromptForDiff = Boolean(reason && hasDiff);
 
       return {
         ...compiled,
         currentView: "wizard",
         step: FINAL_WIZARD_STEP,
         maxStepVisited: FINAL_WIZARD_STEP,
-        workflowPhase: hasDiff ? "diff" : state.workflowPhase,
-        diffPromptReason: hasDiff
-          ? { key: "preset", label: "preset selection" }
-          : state.diffPromptReason,
+        workflowPhase: shouldPromptForDiff ? "diff" : state.workflowPhase,
+        diffPromptReason: shouldPromptForDiff ? reason : null,
       };
     }),
 
