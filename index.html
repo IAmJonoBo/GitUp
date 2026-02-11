@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GitHub Repo Bootstrapper</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              mono: ['JetBrains Mono', 'monospace'],
+            },
+            colors: {
+              border: "hsl(var(--border))",
+              input: "hsl(var(--input))",
+              ring: "hsl(var(--ring))",
+              background: "hsl(var(--background))",
+              foreground: "hsl(var(--foreground))",
+              primary: {
+                DEFAULT: "hsl(var(--primary))",
+                foreground: "hsl(var(--primary-foreground))",
+              },
+              secondary: {
+                DEFAULT: "hsl(var(--secondary))",
+                foreground: "hsl(var(--secondary-foreground))",
+              },
+              muted: {
+                DEFAULT: "hsl(var(--muted))",
+                foreground: "hsl(var(--muted-foreground))",
+              },
+              accent: {
+                DEFAULT: "hsl(var(--accent))",
+                foreground: "hsl(var(--accent-foreground))",
+              },
+              card: {
+                DEFAULT: "hsl(var(--card))",
+                foreground: "hsl(var(--card-foreground))",
+              },
+              popover: {
+                DEFAULT: "hsl(var(--popover))",
+                foreground: "hsl(var(--popover-foreground))",
+              },
+            },
+            borderRadius: {
+              lg: "var(--radius)",
+              md: "calc(var(--radius) - 2px)",
+              sm: "calc(var(--radius) - 4px)",
+            },
+            backgroundImage: {
+              'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+              'cyber-gradient': 'linear-gradient(to right, #f472b6, #a78bfa, #22d3ee)', // Pink -> Purple -> Cyan
+            }
+          },
+        },
+      }
+    </script>
+    <style>
+      :root {
+        /* Charcoal Theme Base (Dark) */
+        --background: 240 10% 4%; /* #09090b - Zinc 950 */
+        --foreground: 240 5% 96%; /* Zinc 50 */
+        
+        --card: 240 10% 6%; /* #18181b - Zinc 900 */
+        --card-foreground: 240 5% 96%;
+        
+        --popover: 240 10% 6%;
+        --popover-foreground: 240 5% 96%;
+        
+        --primary: 263 70% 65%; /* Pastel Purple */
+        --primary-foreground: 240 5% 96%;
+        
+        --secondary: 240 6% 15%; /* Zinc 800 */
+        --secondary-foreground: 240 5% 96%;
+        
+        --muted: 240 6% 15%;
+        --muted-foreground: 240 5% 65%;
+        
+        --accent: 240 6% 15%;
+        --accent-foreground: 240 5% 96%;
+        
+        --destructive: 0 62.8% 30.6%;
+        --destructive-foreground: 240 5% 96%;
+        
+        --border: 240 6% 15%;
+        --input: 240 6% 10%; /* Darker input bg */
+        --ring: 263 70% 65%;
+        
+        --radius: 0.75rem;
+      }
+
+      .light {
+        /* Light Theme Overrides */
+        --background: 240 10% 98%; /* Zinc 50 */
+        --foreground: 240 10% 3.9%; /* Zinc 950 */
+        
+        --card: 0 0% 100%; /* White */
+        --card-foreground: 240 10% 3.9%;
+        
+        --popover: 0 0% 100%;
+        --popover-foreground: 240 10% 3.9%;
+        
+        --primary: 262 83% 58%; /* Purple 600 */
+        --primary-foreground: 0 0% 98%;
+        
+        --secondary: 240 4.8% 95.9%; /* Zinc 100 */
+        --secondary-foreground: 240 5.9% 10%;
+        
+        --muted: 240 4.8% 95.9%;
+        --muted-foreground: 240 3.8% 46.1%;
+        
+        --accent: 240 4.8% 95.9%;
+        --accent-foreground: 240 5.9% 10%;
+        
+        --destructive: 0 84.2% 60.2%;
+        --destructive-foreground: 0 0% 98%;
+        
+        --border: 240 5.9% 90%; /* Zinc 200 */
+        --input: 240 5.9% 90%;
+        --ring: 262 83% 58%;
+      }
+
+      body {
+        background-color: hsl(var(--background));
+        color: hsl(var(--foreground));
+      }
+
+      /* Cyberpunk Scrollbar */
+      .scrollbar-thin::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      .scrollbar-thin::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .scrollbar-thin::-webkit-scrollbar-thumb {
+        background: hsl(var(--border));
+        border-radius: 3px;
+      }
+      .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+        background: hsl(var(--muted-foreground));
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "react": "https://esm.sh/react@^19.2.4",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "framer-motion": "https://esm.sh/framer-motion@^12.34.0",
+    "recharts": "https://esm.sh/recharts@^3.7.0",
+    "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
+    "zustand": "https://esm.sh/zustand@^5.0.11",
+    "@radix-ui/react-slot": "https://esm.sh/@radix-ui/react-slot@^1.2.4",
+    "clsx": "https://esm.sh/clsx@^2.1.1",
+    "reactflow/": "https://esm.sh/reactflow@^11.11.4/",
+    "reactflow": "https://esm.sh/reactflow@^11.11.4",
+    "tailwind-merge": "https://esm.sh/tailwind-merge@^3.4.0",
+    "@hookform/resolvers/": "https://esm.sh/@hookform/resolvers@^5.2.2/",
+    "react-hook-form": "https://esm.sh/react-hook-form@^7.71.1",
+    "zod": "https://esm.sh/zod@^4.3.6",
+    "@radix-ui/react-switch": "https://esm.sh/@radix-ui/react-switch@^1.2.6",
+    "@radix-ui/react-tooltip": "https://esm.sh/@radix-ui/react-tooltip@^1.2.8"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>

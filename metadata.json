@@ -1,0 +1,5 @@
+{
+  "name": "GitHub Repo Bootstrapper",
+  "description": "A premium UI wizard for bootstrapping high-quality GitHub repositories with best practices, CI/CD pipelines, and security defaults.",
+  "requestFramePermissions": []
+}
