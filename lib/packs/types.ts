@@ -1,4 +1,4 @@
-import { DesignSpec, PlanConfigPatch } from '../../types';
+import { DesignSpec, PlanConfigPatch } from "../../types";
 
 export interface PackCapability {
   name: string;

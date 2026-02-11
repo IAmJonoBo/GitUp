@@ -1,7 +1,10 @@
-import { PlanConfigPatch } from '../../types';
-import { PRESET_BUNDLES, getPresetBundlesByIds } from './preset-bundles';
+import { PlanConfigPatch } from "../../types";
+import { PRESET_BUNDLES, getPresetBundlesByIds } from "./preset-bundles";
 
-const mergePatch = (base: PlanConfigPatch, updates: PlanConfigPatch): PlanConfigPatch => ({
+const mergePatch = (
+  base: PlanConfigPatch,
+  updates: PlanConfigPatch,
+): PlanConfigPatch => ({
   ...base,
   ...updates,
   basics: {
@@ -54,9 +57,15 @@ const mergePatch = (base: PlanConfigPatch, updates: PlanConfigPatch): PlanConfig
   },
 });
 
-export const resolvePresetBundlesToPatch = (bundleIds: string[]): PlanConfigPatch => {
+export const resolvePresetBundlesToPatch = (
+  bundleIds: string[],
+): PlanConfigPatch => {
   const bundles = getPresetBundlesByIds(bundleIds);
-  return bundles.reduce<PlanConfigPatch>((patch, bundle) => mergePatch(patch, bundle.config), {});
+  return bundles.reduce<PlanConfigPatch>(
+    (patch, bundle) => mergePatch(patch, bundle.config),
+    {},
+  );
 };
 
-export const findPresetBundle = (bundleId: string) => PRESET_BUNDLES.find((bundle) => bundle.id === bundleId);
+export const findPresetBundle = (bundleId: string) =>
+  PRESET_BUNDLES.find((bundle) => bundle.id === bundleId);

@@ -1,46 +1,71 @@
 export enum ProjectType {
-  LIBRARY = 'Library',
-  SERVICE = 'Service',
-  WEB = 'Web App',
-  CLI = 'CLI Tool',
-  DESKTOP = 'Desktop App',
+  LIBRARY = "Library",
+  SERVICE = "Service",
+  WEB = "Web App",
+  CLI = "CLI Tool",
+  DESKTOP = "Desktop App",
 }
 
 export enum RepoStructure {
-  MONO = 'Monorepo',
-  POLY = 'Polyrepo',
+  MONO = "Monorepo",
+  POLY = "Polyrepo",
 }
 
-export type Architecture = 'Standard' | 'Hexagonal' | 'Clean' | 'Vertical Slice' | 'MVC' | 'Event-Driven';
-export type DependencyStrategy = 'semver' | 'pinned';
-export type Builder = 'None' | 'Vite' | 'Webpack' | 'Esbuild' | 'Tsc' | 'Rollup' | 'Go Build' | 'Cargo' | 'Maven' | 'Gradle';
+export type Architecture =
+  | "Standard"
+  | "Hexagonal"
+  | "Clean"
+  | "Vertical Slice"
+  | "MVC"
+  | "Event-Driven";
+export type DependencyStrategy = "semver" | "pinned";
+export type Builder =
+  | "None"
+  | "Vite"
+  | "Webpack"
+  | "Esbuild"
+  | "Tsc"
+  | "Rollup"
+  | "Go Build"
+  | "Cargo"
+  | "Maven"
+  | "Gradle";
 
-export type DocFramework = 'none' | 'docusaurus' | 'vitepress' | 'mkdocs';
-export type DocStyle = 'none' | 'diataxis' | 'microsoft' | 'google';
+export type DocFramework = "none" | "docusaurus" | "vitepress" | "mkdocs";
+export type DocStyle = "none" | "diataxis" | "microsoft" | "google";
 
-export type BuildTool = 'None' | 'Nx' | 'Turborepo';
-export type Linter = 'ESLint' | 'Biome' | 'None';
-export type Formatter = 'Prettier' | 'Biome' | 'None';
-export type QualityPlatform = 'None' | 'Trunk.io';
-export type GovernancePosture = 'Relaxed' | 'Team Standard' | 'Strict';
-export type NoiseBudgetPreset = 'low' | 'medium' | 'high';
+export type BuildTool = "None" | "Nx" | "Turborepo";
+export type Linter = "ESLint" | "Biome" | "None";
+export type Formatter = "Prettier" | "Biome" | "None";
+export type QualityPlatform = "None" | "Trunk.io";
+export type GovernancePosture = "Relaxed" | "Team Standard" | "Strict";
+export type NoiseBudgetPreset = "low" | "medium" | "high";
 export type NoiseBudget = NoiseBudgetPreset | number;
 
-export type TestFramework = 'Jest' | 'Vitest' | 'Mocha' | 'Pytest' | 'Go Test' | 'Cargo Test' | 'JUnit' | 'RSpec' | 'None';
-export type E2EFramework = 'Playwright' | 'Cypress' | 'None';
+export type TestFramework =
+  | "Jest"
+  | "Vitest"
+  | "Mocha"
+  | "Pytest"
+  | "Go Test"
+  | "Cargo Test"
+  | "JUnit"
+  | "RSpec"
+  | "None";
+export type E2EFramework = "Playwright" | "Cypress" | "None";
 
 export interface Webhook {
   id: string;
   url: string;
-  contentType: 'json' | 'form';
-  events: ('push' | 'pull_request' | 'release' | '*')[];
+  contentType: "json" | "form";
+  events: ("push" | "pull_request" | "release" | "*")[];
   active: boolean;
 }
 
 export interface DesignSpec {
   projectName: string;
-  visibility: 'public' | 'private';
-  license: 'MIT' | 'Apache-2.0' | 'GPL-3.0' | 'None';
+  visibility: "public" | "private";
+  license: "MIT" | "Apache-2.0" | "GPL-3.0" | "None";
   basics: {
     i18n: boolean;
     description: string;
@@ -76,9 +101,9 @@ export interface DesignSpec {
       };
     };
     actions: {
-      permissions: 'all' | 'local' | 'none';
+      permissions: "all" | "local" | "none";
       allowPr: boolean;
-      runners: 'github' | 'self-hosted';
+      runners: "github" | "self-hosted";
     };
     copilot: boolean;
     webhooks: Webhook[];
@@ -86,11 +111,23 @@ export interface DesignSpec {
     secrets: string[];
   };
   stack: {
-    language: 'TypeScript' | 'Go' | 'Rust' | 'Python' | 'Java' | 'Ruby';
-    rustMode: 'template' | 'projen-experimental';
+    language: "TypeScript" | "Go" | "Rust" | "Python" | "Java" | "Ruby";
+    rustMode: "template" | "projen-experimental";
     languageVersion: string;
     framework: string;
-    packageManager: 'npm' | 'pnpm' | 'yarn' | 'cargo' | 'pip' | 'pipenv' | 'bun' | 'maven' | 'gradle' | 'bundler' | 'poetry' | 'go mod';
+    packageManager:
+      | "npm"
+      | "pnpm"
+      | "yarn"
+      | "cargo"
+      | "pip"
+      | "pipenv"
+      | "bun"
+      | "maven"
+      | "gradle"
+      | "bundler"
+      | "poetry"
+      | "go mod";
     dependencyStrategy: DependencyStrategy;
     buildTool: BuildTool;
     builder: Builder;
@@ -115,7 +152,7 @@ export interface DesignSpec {
   security: {
     codeScanning: boolean;
     dependencyUpdates: boolean;
-    dependencyUpdateFrequency: 'daily' | 'weekly' | 'monthly';
+    dependencyUpdateFrequency: "daily" | "weekly" | "monthly";
     secretScanning: boolean;
     manageEnv: boolean;
   };
@@ -169,22 +206,22 @@ export interface RepoPackResolution {
 
 export interface RepoSpec {
   name: string;
-  packageManager: DesignSpec['stack']['packageManager'];
-  architecture: DesignSpec['architecture'];
+  packageManager: DesignSpec["stack"]["packageManager"];
+  architecture: DesignSpec["architecture"];
   automation: {
     dependabot: {
-      schedule: DesignSpec['security']['dependencyUpdateFrequency'];
-      grouping: 'none' | 'language' | 'broad';
+      schedule: DesignSpec["security"]["dependencyUpdateFrequency"];
+      grouping: "none" | "language" | "broad";
       estimatedMonthlyPrs: number;
     };
     ci: {
-      matrixBreadth: 'minimal' | 'standard' | 'broad';
+      matrixBreadth: "minimal" | "standard" | "broad";
       dimensions: string[];
     };
   };
   governance: {
     posture: GovernancePosture;
-    ruleset: 'lenient' | 'standard' | 'strict';
+    ruleset: "lenient" | "standard" | "strict";
     branch: {
       requirePr: boolean;
       requiredReviewers: number;
@@ -198,14 +235,20 @@ export interface RepoSpec {
       codeScanning: boolean;
       secretScanning: boolean;
       dependencyUpdates: boolean;
-      dependencyUpdateFrequency: DesignSpec['security']['dependencyUpdateFrequency'];
+      dependencyUpdateFrequency: DesignSpec["security"]["dependencyUpdateFrequency"];
     };
   };
   files: string[];
   packs: RepoPackResolution;
 }
 
-export type ChangeOperationType = 'init' | 'check' | 'create_file' | 'install' | 'quality' | 'complete';
+export type ChangeOperationType =
+  | "init"
+  | "check"
+  | "create_file"
+  | "install"
+  | "quality"
+  | "complete";
 
 export interface ChangeOperation {
   id: string;
@@ -226,13 +269,13 @@ export interface ChangePlanDiff {
 
 export interface EngineDecisionPayload {
   key: string;
-  stage: 'normalize' | 'repo-spec' | 'change-plan';
+  stage: "normalize" | "repo-spec" | "change-plan";
   title: string;
   recommendation: string;
   why: string;
   tradeOffs: string[];
   alternatives: string[];
-  confidence: 'High' | 'Medium' | 'Low';
+  confidence: "High" | "Medium" | "Low";
 }
 
 export interface PublisherAction {
@@ -244,7 +287,7 @@ export interface PublisherAction {
 
 export interface PublisherArtifact {
   path: string;
-  kind: 'file' | 'artifact' | 'planned-action';
+  kind: "file" | "artifact" | "planned-action";
   content?: string;
   description: string;
 }
@@ -274,7 +317,7 @@ export interface Preset {
 
 export interface TreeNode {
   name: string;
-  type: 'file' | 'folder';
+  type: "file" | "folder";
   children?: TreeNode[];
   content?: string;
 }
@@ -285,12 +328,12 @@ export interface DecisionPoint {
   why: string;
   tradeOffs: string[];
   alternatives: string[];
-  confidence: 'High' | 'Medium' | 'Low';
+  confidence: "High" | "Medium" | "Low";
 }
 
 export interface SimulationLogEntry {
   id: string;
-  type: 'info' | 'file' | 'success';
+  type: "info" | "file" | "success";
   message: string;
   fileName?: string;
 }

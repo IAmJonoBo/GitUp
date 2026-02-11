@@ -1,19 +1,40 @@
-import { create } from 'zustand';
-import { ChangePlan, ChangePlanDiff, DesignSpec, EngineDecisionPayload, PlanConfig, PlanConfigPatch, Preset, PublisherAction, RepoSpec, SimulationLogEntry } from './types';
-import { resolvePresetBundlesToPatch } from './lib/packs';
-import { FINAL_WIZARD_STEP, applyPresetConfig, createDefaultPlanConfig, mergePlanConfig } from './lib/plan-config';
-import { SIMULATION_TICK_MS, buildChangePlanDiff, compileDesignSpecToChangePlan, createEngineDecisionPayloads, mapChangePlanToPublisherActions, renderChangePlanSimulationLog } from './lib/simulation';
-import { compileRepoSpec } from './lib/engine/compile-repospec';
-import { PublishTarget } from './lib/publisher';
+import { create } from "zustand";
+import {
+  ChangePlan,
+  ChangePlanDiff,
+  DesignSpec,
+  EngineDecisionPayload,
+  PlanConfig,
+  PlanConfigPatch,
+  Preset,
+  PublisherAction,
+  RepoSpec,
+  SimulationLogEntry,
+} from "./types";
+import { resolvePresetBundlesToPatch } from "./lib/packs";
+import {
+  FINAL_WIZARD_STEP,
+  applyPresetConfig,
+  createDefaultPlanConfig,
+  mergePlanConfig,
+} from "./lib/plan-config";
+import {
+  SIMULATION_TICK_MS,
+  buildChangePlanDiff,
+  compileDesignSpecToChangePlan,
+  createEngineDecisionPayloads,
+  mapChangePlanToPublisherActions,
+  renderChangePlanSimulationLog,
+} from "./lib/simulation";
+import { compileRepoSpec } from "./lib/engine/compile-repospec";
+import { PublishTarget } from "./lib/publisher";
 
-export type UserMode = 'basic' | 'power';
-export type AppView = 'wizard' | 'presets' | 'settings' | 'help' | 'export';
-export type WorkflowPhase = 'preview' | 'diff' | 'explain' | 'apply';
-
-
+export type UserMode = "basic" | "power";
+export type AppView = "wizard" | "presets" | "settings" | "help" | "export";
+export type WorkflowPhase = "preview" | "diff" | "explain" | "apply";
 
 interface DiffPromptReason {
-  key: 'preset' | 'stack' | 'visibility' | 'security';
+  key: "preset" | "stack" | "visibility" | "security";
   label: string;
 }
 
@@ -38,7 +59,7 @@ interface AppState {
   simulationLog: SimulationLogEntry[];
   mobilePreviewOpen: boolean;
   customPresets: Preset[];
-  theme: 'dark' | 'light';
+  theme: "dark" | "light";
   reducedMotion: boolean;
   capabilityOwnerOverrides: Record<string, string>;
   setStep: (step: number) => void;
@@ -51,10 +72,13 @@ interface AppState {
   updateConfig: (updates: PlanConfigPatch) => void;
   startSimulation: () => void;
   reset: () => void;
-  applyPreset: (preset: { config?: PlanConfigPatch; bundleIds?: string[] }) => void;
+  applyPreset: (preset: {
+    config?: PlanConfigPatch;
+    bundleIds?: string[];
+  }) => void;
   addCustomPreset: (preset: Preset) => void;
   deleteCustomPreset: (id: string) => void;
-  setTheme: (theme: 'dark' | 'light') => void;
+  setTheme: (theme: "dark" | "light") => void;
   setReducedMotion: (enabled: boolean) => void;
   resolveCapabilityConflict: (capability: string, ownerPackId: string) => void;
 }
@@ -70,12 +94,14 @@ const clearSimulationTimer = () => {
 const createCompiledState = (
   designSpec: DesignSpec,
   previousPlan?: ChangePlan,
-  userMode: UserMode = 'basic',
+  userMode: UserMode = "basic",
   capabilityOwnerOverrides: Record<string, string> = {},
-  publishTarget: PublishTarget = 'local',
+  publishTarget: PublishTarget = "local",
 ) => {
   const repoSpec = compileRepoSpec(designSpec, { capabilityOwnerOverrides });
-  const changePlan = compileDesignSpecToChangePlan(designSpec, { capabilityOwnerOverrides });
+  const changePlan = compileDesignSpecToChangePlan(designSpec, {
+    capabilityOwnerOverrides,
+  });
 
   return {
     designSpec,
@@ -83,29 +109,47 @@ const createCompiledState = (
     repoSpec,
     changePlan,
     previousChangePlan: previousPlan ?? changePlan,
-    pendingDiff: previousPlan ? buildChangePlanDiff(previousPlan, changePlan) : null,
-    engineDecisions: createEngineDecisionPayloads(designSpec, repoSpec, changePlan),
-    publisherActions: mapChangePlanToPublisherActions(designSpec, repoSpec, changePlan, { userMode, target: publishTarget }),
+    pendingDiff: previousPlan
+      ? buildChangePlanDiff(previousPlan, changePlan)
+      : null,
+    engineDecisions: createEngineDecisionPayloads(
+      designSpec,
+      repoSpec,
+      changePlan,
+    ),
+    publisherActions: mapChangePlanToPublisherActions(
+      designSpec,
+      repoSpec,
+      changePlan,
+      { userMode, target: publishTarget },
+    ),
     publishTarget,
   };
 };
 
-const createInitialState = () => createCompiledState(createDefaultPlanConfig(), undefined, 'basic', {}, 'local');
+const createInitialState = () =>
+  createCompiledState(
+    createDefaultPlanConfig(),
+    undefined,
+    "basic",
+    {},
+    "local",
+  );
 
 export const useStore = create<AppState>((set, get) => ({
   ...createInitialState(),
   step: 0,
   maxStepVisited: 0,
-  userMode: 'basic',
-  currentView: 'wizard',
+  userMode: "basic",
+  currentView: "wizard",
   isSimulating: false,
   simulationLog: [],
   mobilePreviewOpen: false,
   customPresets: [],
-  theme: 'dark',
+  theme: "dark",
   reducedMotion: false,
   capabilityOwnerOverrides: {},
-  workflowPhase: 'preview',
+  workflowPhase: "preview",
   diffPromptReason: null,
 
   setStep: (step) =>
@@ -116,41 +160,72 @@ export const useStore = create<AppState>((set, get) => ({
   setUserMode: (mode) =>
     set((state) => ({
       userMode: mode,
-      publisherActions: mapChangePlanToPublisherActions(state.designSpec, state.repoSpec, state.changePlan, {
-        userMode: mode,
-        target: state.publishTarget,
-      }),
+      publisherActions: mapChangePlanToPublisherActions(
+        state.designSpec,
+        state.repoSpec,
+        state.changePlan,
+        {
+          userMode: mode,
+          target: state.publishTarget,
+        },
+      ),
     })),
   setPublishTarget: (target) =>
     set((state) => ({
       publishTarget: target,
-      publisherActions: mapChangePlanToPublisherActions(state.designSpec, state.repoSpec, state.changePlan, {
-        userMode: state.userMode,
-        target,
-      }),
+      publisherActions: mapChangePlanToPublisherActions(
+        state.designSpec,
+        state.repoSpec,
+        state.changePlan,
+        {
+          userMode: state.userMode,
+          target,
+        },
+      ),
     })),
   setCurrentView: (view) => set({ currentView: view }),
   setWorkflowPhase: (phase) => set({ workflowPhase: phase }),
-  confirmDiffInterstitial: () => set({ workflowPhase: 'explain', pendingDiff: null, diffPromptReason: null }),
+  confirmDiffInterstitial: () =>
+    set({
+      workflowPhase: "explain",
+      pendingDiff: null,
+      diffPromptReason: null,
+    }),
   toggleMobilePreview: (isOpen) => set({ mobilePreviewOpen: isOpen }),
 
   updateConfig: (updates) =>
     set((state) => {
       const nextSpec = mergePlanConfig(state.designSpec, updates);
-      const compiled = createCompiledState(nextSpec, state.changePlan, state.userMode, state.capabilityOwnerOverrides, state.publishTarget);
+      const compiled = createCompiledState(
+        nextSpec,
+        state.changePlan,
+        state.userMode,
+        state.capabilityOwnerOverrides,
+        state.publishTarget,
+      );
       const reason =
         updates.visibility !== undefined
-          ? { key: 'visibility' as const, label: 'repository visibility' }
+          ? { key: "visibility" as const, label: "repository visibility" }
           : updates.security !== undefined
-            ? { key: 'security' as const, label: 'security posture' }
+            ? { key: "security" as const, label: "security posture" }
             : updates.stack !== undefined
-              ? { key: 'stack' as const, label: 'language/stack' }
+              ? { key: "stack" as const, label: "language/stack" }
               : null;
 
       return {
         ...compiled,
-        workflowPhase: reason && (compiled.pendingDiff?.added.length || compiled.pendingDiff?.removed.length) ? 'diff' : state.workflowPhase,
-        diffPromptReason: reason && (compiled.pendingDiff?.added.length || compiled.pendingDiff?.removed.length) ? reason : state.diffPromptReason,
+        workflowPhase:
+          reason &&
+          (compiled.pendingDiff?.added.length ||
+            compiled.pendingDiff?.removed.length)
+            ? "diff"
+            : state.workflowPhase,
+        diffPromptReason:
+          reason &&
+          (compiled.pendingDiff?.added.length ||
+            compiled.pendingDiff?.removed.length)
+            ? reason
+            : state.diffPromptReason,
       };
     }),
 
@@ -158,21 +233,32 @@ export const useStore = create<AppState>((set, get) => ({
     set((state) => {
       const bundlePatch = resolvePresetBundlesToPatch(preset.bundleIds ?? []);
       const presetPatch = { ...bundlePatch, ...(preset.config ?? {}) };
-      const compiled = createCompiledState(applyPresetConfig(presetPatch), state.changePlan, state.userMode, state.capabilityOwnerOverrides, state.publishTarget);
-      const hasDiff = Boolean(compiled.pendingDiff?.added.length || compiled.pendingDiff?.removed.length);
+      const compiled = createCompiledState(
+        applyPresetConfig(presetPatch),
+        state.changePlan,
+        state.userMode,
+        state.capabilityOwnerOverrides,
+        state.publishTarget,
+      );
+      const hasDiff = Boolean(
+        compiled.pendingDiff?.added.length ||
+        compiled.pendingDiff?.removed.length,
+      );
 
       return {
         ...compiled,
-        currentView: 'wizard',
+        currentView: "wizard",
         step: FINAL_WIZARD_STEP,
         maxStepVisited: FINAL_WIZARD_STEP,
-        workflowPhase: hasDiff ? 'diff' : state.workflowPhase,
-        diffPromptReason: hasDiff ? { key: 'preset', label: 'preset selection' } : state.diffPromptReason,
+        workflowPhase: hasDiff ? "diff" : state.workflowPhase,
+        diffPromptReason: hasDiff
+          ? { key: "preset", label: "preset selection" }
+          : state.diffPromptReason,
       };
     }),
 
   startSimulation: () => {
-    set({ workflowPhase: 'apply' });
+    set({ workflowPhase: "apply" });
     clearSimulationTimer();
     const steps = renderChangePlanSimulationLog(get().changePlan);
     set({ isSimulating: true, simulationLog: [] });
@@ -198,12 +284,12 @@ export const useStore = create<AppState>((set, get) => ({
       step: 0,
       maxStepVisited: 0,
       ...createInitialState(),
-      workflowPhase: 'preview',
+      workflowPhase: "preview",
       pendingDiff: null,
       diffPromptReason: null,
       isSimulating: false,
       simulationLog: [],
-      currentView: 'wizard',
+      currentView: "wizard",
       capabilityOwnerOverrides: {},
     });
   },
@@ -226,13 +312,17 @@ export const useStore = create<AppState>((set, get) => ({
         ...state.capabilityOwnerOverrides,
         [capability]: ownerPackId,
       };
-      const compiled = createCompiledState(state.designSpec, state.changePlan, state.userMode, capabilityOwnerOverrides, state.publishTarget);
+      const compiled = createCompiledState(
+        state.designSpec,
+        state.changePlan,
+        state.userMode,
+        capabilityOwnerOverrides,
+        state.publishTarget,
+      );
 
       return {
         ...compiled,
         capabilityOwnerOverrides,
       };
     }),
-
-
 }));

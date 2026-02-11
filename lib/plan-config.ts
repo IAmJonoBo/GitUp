@@ -1,20 +1,25 @@
-import { PlanConfig, PlanConfigPatch, ProjectType, RepoStructure } from '../types';
+import {
+  PlanConfig,
+  PlanConfigPatch,
+  ProjectType,
+  RepoStructure,
+} from "../types";
 
 export const FINAL_WIZARD_STEP = 8;
 
 const DEFAULT_PLAN_CONFIG: PlanConfig = {
-  projectName: 'my-awesome-project',
-  visibility: 'public',
-  license: 'MIT',
+  projectName: "my-awesome-project",
+  visibility: "public",
+  license: "MIT",
   basics: {
     i18n: false,
-    description: 'A new project bootstrapped with best practices.',
+    description: "A new project bootstrapped with best practices.",
   },
   structure: RepoStructure.POLY,
   type: ProjectType.WEB,
-  architecture: 'Standard',
-  noiseBudget: 'medium',
-  governancePosture: 'Team Standard',
+  architecture: "Standard",
+  noiseBudget: "medium",
+  governancePosture: "Team Standard",
   github: {
     topics: [],
     features: {
@@ -30,7 +35,7 @@ const DEFAULT_PLAN_CONFIG: PlanConfig = {
       deleteBranchOnMerge: true,
     },
     branches: {
-      default: 'main',
+      default: "main",
       protection: {
         requirePr: true,
         requiredReviewers: 1,
@@ -41,34 +46,34 @@ const DEFAULT_PLAN_CONFIG: PlanConfig = {
       },
     },
     actions: {
-      permissions: 'local',
+      permissions: "local",
       allowPr: false,
-      runners: 'github',
+      runners: "github",
     },
     copilot: false,
     webhooks: [],
-    environments: ['production', 'staging'],
-    secrets: ['NPM_TOKEN'],
+    environments: ["production", "staging"],
+    secrets: ["NPM_TOKEN"],
   },
   stack: {
-    language: 'TypeScript',
-    rustMode: 'template',
-    languageVersion: '20.x',
-    framework: 'Next.js',
-    packageManager: 'pnpm',
-    dependencyStrategy: 'semver',
-    buildTool: 'None',
-    builder: 'None',
+    language: "TypeScript",
+    rustMode: "template",
+    languageVersion: "20.x",
+    framework: "Next.js",
+    packageManager: "pnpm",
+    dependencyStrategy: "semver",
+    buildTool: "None",
+    builder: "None",
   },
   quality: {
-    linter: 'ESLint',
-    formatter: 'Prettier',
-    qualityPlatform: 'None',
+    linter: "ESLint",
+    formatter: "Prettier",
+    qualityPlatform: "None",
     testing: true,
-    testFramework: 'Vitest',
+    testFramework: "Vitest",
     integrationTests: false,
     e2eTests: false,
-    e2eFramework: 'None',
+    e2eFramework: "None",
     coverageTarget: 80,
   },
   ci: {
@@ -80,7 +85,7 @@ const DEFAULT_PLAN_CONFIG: PlanConfig = {
   security: {
     codeScanning: true,
     dependencyUpdates: true,
-    dependencyUpdateFrequency: 'weekly',
+    dependencyUpdateFrequency: "weekly",
     secretScanning: true,
     manageEnv: true,
   },
@@ -91,15 +96,19 @@ const DEFAULT_PLAN_CONFIG: PlanConfig = {
     codeowners: false,
     issueTemplates: false,
     pullRequestTemplate: false,
-    framework: 'none',
-    styleGuide: 'none',
+    framework: "none",
+    styleGuide: "none",
     deployToPages: false,
   },
 };
 
-export const createDefaultPlanConfig = (): PlanConfig => structuredClone(DEFAULT_PLAN_CONFIG);
+export const createDefaultPlanConfig = (): PlanConfig =>
+  structuredClone(DEFAULT_PLAN_CONFIG);
 
-export const mergePlanConfig = (base: PlanConfig, updates: PlanConfigPatch): PlanConfig => ({
+export const mergePlanConfig = (
+  base: PlanConfig,
+  updates: PlanConfigPatch,
+): PlanConfig => ({
   ...base,
   ...updates,
   basics: {

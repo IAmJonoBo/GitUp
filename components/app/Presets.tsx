@@ -1,12 +1,37 @@
-import React, { useState } from 'react';
-import { Card, Button, Badge, Input, Label } from '../ui/primitives';
-import { useStore } from '../../store';
-import { PlanConfigPatch, Preset, ProjectType, RepoStructure } from '../../types';
-import { Rocket, Shield, Box, Layout, Server, BookOpen, Layers, Plus, Save, Trash2, X, type LucideIcon } from 'lucide-react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { cn } from '../../lib/utils';
+import React, { useState } from "react";
+import { Card, Button, Badge, Input, Label } from "../ui/primitives";
+import { useStore } from "../../store";
+import {
+  PlanConfigPatch,
+  Preset,
+  ProjectType,
+  RepoStructure,
+} from "../../types";
+import {
+  Rocket,
+  Shield,
+  Box,
+  Layout,
+  Server,
+  BookOpen,
+  Layers,
+  Plus,
+  Save,
+  Trash2,
+  X,
+  type LucideIcon,
+} from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { cn } from "../../lib/utils";
 
-type PresetTone = 'blue' | 'purple' | 'emerald' | 'cyan' | 'sky' | 'orange' | 'zinc';
+type PresetTone =
+  | "blue"
+  | "purple"
+  | "emerald"
+  | "cyan"
+  | "sky"
+  | "orange"
+  | "zinc";
 
 interface PresetCardData {
   id: string;
@@ -18,76 +43,82 @@ interface PresetCardData {
   icon?: LucideIcon;
 }
 
-const toneStyles: Record<PresetTone, { bar: string; barHover: string; icon: string }> = {
+const toneStyles: Record<
+  PresetTone,
+  { bar: string; barHover: string; icon: string }
+> = {
   blue: {
-    bar: 'bg-blue-500/50',
-    barHover: 'group-hover:bg-blue-500',
-    icon: 'bg-blue-500/10 text-blue-400',
+    bar: "bg-blue-500/50",
+    barHover: "group-hover:bg-blue-500",
+    icon: "bg-blue-500/10 text-blue-400",
   },
   purple: {
-    bar: 'bg-purple-500/50',
-    barHover: 'group-hover:bg-purple-500',
-    icon: 'bg-purple-500/10 text-purple-400',
+    bar: "bg-purple-500/50",
+    barHover: "group-hover:bg-purple-500",
+    icon: "bg-purple-500/10 text-purple-400",
   },
   emerald: {
-    bar: 'bg-emerald-500/50',
-    barHover: 'group-hover:bg-emerald-500',
-    icon: 'bg-emerald-500/10 text-emerald-400',
+    bar: "bg-emerald-500/50",
+    barHover: "group-hover:bg-emerald-500",
+    icon: "bg-emerald-500/10 text-emerald-400",
   },
   cyan: {
-    bar: 'bg-cyan-500/50',
-    barHover: 'group-hover:bg-cyan-500',
-    icon: 'bg-cyan-500/10 text-cyan-400',
+    bar: "bg-cyan-500/50",
+    barHover: "group-hover:bg-cyan-500",
+    icon: "bg-cyan-500/10 text-cyan-400",
   },
   sky: {
-    bar: 'bg-sky-500/50',
-    barHover: 'group-hover:bg-sky-500',
-    icon: 'bg-sky-500/10 text-sky-400',
+    bar: "bg-sky-500/50",
+    barHover: "group-hover:bg-sky-500",
+    icon: "bg-sky-500/10 text-sky-400",
   },
   orange: {
-    bar: 'bg-orange-500/50',
-    barHover: 'group-hover:bg-orange-500',
-    icon: 'bg-orange-500/10 text-orange-400',
+    bar: "bg-orange-500/50",
+    barHover: "group-hover:bg-orange-500",
+    icon: "bg-orange-500/10 text-orange-400",
   },
   zinc: {
-    bar: 'bg-zinc-500/50',
-    barHover: 'group-hover:bg-zinc-500',
-    icon: 'bg-zinc-500/10 text-zinc-300',
+    bar: "bg-zinc-500/50",
+    barHover: "group-hover:bg-zinc-500",
+    icon: "bg-zinc-500/10 text-zinc-300",
   },
 };
 
 const governancePresets: PresetCardData[] = [
   {
-    id: 'starter',
-    name: 'Solo Quickstart',
-    description: 'Perfect for hackathons or hobby projects. Minimal friction, standard defaults.',
+    id: "starter",
+    name: "Solo Quickstart",
+    description:
+      "Perfect for hackathons or hobby projects. Minimal friction, standard defaults.",
     icon: Rocket,
-    tone: 'blue',
-    bundleIds: ['bundle.governance.solo-quickstart'],
+    tone: "blue",
+    bundleIds: ["bundle.governance.solo-quickstart"],
     config: {
       type: ProjectType.WEB,
       structure: RepoStructure.POLY,
     },
   },
   {
-    id: 'team',
-    name: 'Team Standard',
-    description: 'Balanced for small to medium teams. Enforces code quality without slowing you down.',
+    id: "team",
+    name: "Team Standard",
+    description:
+      "Balanced for small to medium teams. Enforces code quality without slowing you down.",
     icon: Box,
-    tone: 'purple',
-    bundleIds: ['bundle.governance.team-standard'],
+    tone: "purple",
+    bundleIds: ["bundle.governance.team-standard"],
     config: {
       type: ProjectType.SERVICE,
       structure: RepoStructure.POLY,
     },
   },
   {
-    id: 'enterprise',
-    name: 'Hardened Enterprise',
-    description: 'Maximum security and governance. Strict gates, full documentation required.',
+    id: "enterprise",
+    name: "Hardened Enterprise",
+    description:
+      "Maximum security and governance. Strict gates, full documentation required.",
     icon: Shield,
-    tone: 'emerald',
-    bundleIds: ['bundle.governance.enterprise'],
+    tone: "emerald",
+    bundleIds: ["bundle.governance.enterprise"],
     config: {
       type: ProjectType.LIBRARY,
     },
@@ -96,31 +127,34 @@ const governancePresets: PresetCardData[] = [
 
 const stackTemplates: PresetCardData[] = [
   {
-    id: 'next-full',
-    name: 'Full-Stack Next.js',
-    description: 'Opinionated web stack with TypeScript, Tailwind, Vitest, and Playwright.',
+    id: "next-full",
+    name: "Full-Stack Next.js",
+    description:
+      "Opinionated web stack with TypeScript, Tailwind, Vitest, and Playwright.",
     icon: Layout,
-    tone: 'cyan',
-    bundleIds: ['bundle.stack.next-full'],
+    tone: "cyan",
+    bundleIds: ["bundle.stack.next-full"],
     config: {
       type: ProjectType.WEB,
     },
   },
   {
-    id: 'go-api',
-    name: 'High-Performance API Service',
-    description: 'Go microservice with Gin, Docker builds, and Clean Architecture folders.',
+    id: "go-api",
+    name: "High-Performance API Service",
+    description:
+      "Go microservice with Gin, Docker builds, and Clean Architecture folders.",
     icon: Server,
-    tone: 'sky',
-    bundleIds: ['bundle.stack.go-api'],
+    tone: "sky",
+    bundleIds: ["bundle.stack.go-api"],
   },
   {
-    id: 'docs-site',
-    name: 'VitePress Documentation',
-    description: 'Static documentation site pre-configured for GitHub Pages deployment.',
+    id: "docs-site",
+    name: "VitePress Documentation",
+    description:
+      "Static documentation site pre-configured for GitHub Pages deployment.",
     icon: BookOpen,
-    tone: 'orange',
-    bundleIds: ['bundle.stack.docs-site'],
+    tone: "orange",
+    bundleIds: ["bundle.stack.docs-site"],
     config: {
       type: ProjectType.WEB,
     },
@@ -134,8 +168,8 @@ export const Presets = () => {
   const deleteCustomPreset = useStore((state) => state.deleteCustomPreset);
   const currentConfig = useStore((state) => state.config);
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
-  const [newPresetName, setNewPresetName] = useState('');
-  const [newPresetDesc, setNewPresetDesc] = useState('');
+  const [newPresetName, setNewPresetName] = useState("");
+  const [newPresetDesc, setNewPresetDesc] = useState("");
 
   const handleSavePreset = () => {
     const trimmedName = newPresetName.trim();
@@ -144,15 +178,15 @@ export const Presets = () => {
     const preset: Preset = {
       id: `custom-${Date.now()}`,
       name: trimmedName,
-      description: newPresetDesc || 'Custom configuration',
+      description: newPresetDesc || "Custom configuration",
       config: structuredClone(currentConfig),
       bundleIds: [],
     };
 
     addCustomPreset(preset);
     setIsSaveModalOpen(false);
-    setNewPresetName('');
-    setNewPresetDesc('');
+    setNewPresetName("");
+    setNewPresetDesc("");
   };
 
   const renderCard = (preset: PresetCardData, isCustom = false) => {
@@ -160,16 +194,41 @@ export const Presets = () => {
     const Icon = preset.icon ?? Save;
 
     return (
-      <Card key={preset.id} className="bg-zinc-900 border-white/10 flex flex-col hover:border-white/20 transition-all hover:-translate-y-1 group relative overflow-hidden">
-        <div className={cn('h-1 w-full rounded-t-xl transition-colors', style.bar, style.barHover)} />
+      <Card
+        key={preset.id}
+        className="bg-zinc-900 border-white/10 flex flex-col hover:border-white/20 transition-all hover:-translate-y-1 group relative overflow-hidden"
+      >
+        <div
+          className={cn(
+            "h-1 w-full rounded-t-xl transition-colors",
+            style.bar,
+            style.barHover,
+          )}
+        />
         <div className="p-5 flex-1 flex flex-col">
           <div className="flex items-start justify-between mb-4">
-            <div className={cn('p-3 rounded-xl flex items-center justify-center', style.icon)}>
+            <div
+              className={cn(
+                "p-3 rounded-xl flex items-center justify-center",
+                style.icon,
+              )}
+            >
               <Icon className="w-6 h-6" />
             </div>
             <div className="flex gap-2">
-              {preset.id === 'next-full' && <Badge variant="cyber" className="opacity-80">Popular</Badge>}
-              {isCustom && <Badge variant="outline" className="border-zinc-700 bg-zinc-800">Custom</Badge>}
+              {preset.id === "next-full" && (
+                <Badge variant="cyber" className="opacity-80">
+                  Popular
+                </Badge>
+              )}
+              {isCustom && (
+                <Badge
+                  variant="outline"
+                  className="border-zinc-700 bg-zinc-800"
+                >
+                  Custom
+                </Badge>
+              )}
             </div>
           </div>
 
@@ -182,7 +241,12 @@ export const Presets = () => {
             <Button
               className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-white/5"
               variant="ghost"
-              onClick={() => applyPreset({ config: preset.config, bundleIds: preset.bundleIds })}
+              onClick={() =>
+                applyPreset({
+                  config: preset.config,
+                  bundleIds: preset.bundleIds,
+                })
+              }
             >
               Use Template
             </Button>
@@ -206,14 +270,19 @@ export const Presets = () => {
 
   const customPresetCards: PresetCardData[] = customPresets.map((preset) => ({
     ...preset,
-    tone: 'zinc',
+    tone: "zinc",
   }));
 
   return (
     <div className="max-w-5xl mx-auto py-10 px-6 animate-in slide-in-from-bottom-4 duration-500">
       <div className="mb-10 text-center">
-        <h2 className="text-3xl font-bold text-white mb-3">Project Blueprints</h2>
-        <p className="text-zinc-400 max-w-2xl mx-auto">Start from a governance baseline or a fully-configured tech stack template. You can also save your own configurations.</p>
+        <h2 className="text-3xl font-bold text-white mb-3">
+          Project Blueprints
+        </h2>
+        <p className="text-zinc-400 max-w-2xl mx-auto">
+          Start from a governance baseline or a fully-configured tech stack
+          template. You can also save your own configurations.
+        </p>
       </div>
 
       <div className="mb-12">
@@ -231,7 +300,9 @@ export const Presets = () => {
             <div className="p-4 bg-zinc-900 rounded-full mb-4 group-hover:scale-110 transition-transform">
               <Plus className="w-6 h-6 text-zinc-400" />
             </div>
-            <h3 className="text-lg font-bold text-zinc-300">Save Current Config</h3>
+            <h3 className="text-lg font-bold text-zinc-300">
+              Save Current Config
+            </h3>
             <p className="text-sm text-zinc-500 text-center mt-2 max-w-[200px]">
               Create a new preset based on your current wizard selections
             </p>
@@ -277,7 +348,10 @@ export const Presets = () => {
             >
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-bold text-white">Save Preset</h3>
-                <button onClick={() => setIsSaveModalOpen(false)} className="text-zinc-500 hover:text-white">
+                <button
+                  onClick={() => setIsSaveModalOpen(false)}
+                  className="text-zinc-500 hover:text-white"
+                >
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -305,8 +379,18 @@ export const Presets = () => {
               </div>
 
               <div className="flex gap-3 mt-8">
-                <Button variant="ghost" className="flex-1" onClick={() => setIsSaveModalOpen(false)}>Cancel</Button>
-                <Button className="flex-1 bg-white text-black hover:bg-zinc-200" onClick={handleSavePreset} disabled={!newPresetName.trim()}>
+                <Button
+                  variant="ghost"
+                  className="flex-1"
+                  onClick={() => setIsSaveModalOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="flex-1 bg-white text-black hover:bg-zinc-200"
+                  onClick={handleSavePreset}
+                  disabled={!newPresetName.trim()}
+                >
                   Save Preset
                 </Button>
               </div>

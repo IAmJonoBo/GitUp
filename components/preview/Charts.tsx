@@ -1,51 +1,106 @@
-import React from 'react';
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
-import { useStore } from '../../store';
-import { Card } from '../ui/primitives';
+import React from "react";
+import {
+  Radar,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+} from "recharts";
+import { useStore } from "../../store";
+import { Card } from "../ui/primitives";
 
 export const PostureChart = () => {
   const repoSpec = useStore((state) => state.repoSpec);
 
-  const data = React.useMemo(() => [
-    {
-      subject: 'Security',
-      A: repoSpec.governance.securityDefaults.codeScanning && repoSpec.governance.securityDefaults.secretScanning ? 95 : 55,
-      fullMark: 100,
-    },
-    {
-      subject: 'Quality',
-      A: repoSpec.governance.statusChecks.includes('test') ? 90 : 50,
-      fullMark: 100,
-    },
-    {
-      subject: 'Auto',
-      A: repoSpec.automation.ci.matrixBreadth === 'broad' ? 95 : repoSpec.automation.ci.matrixBreadth === 'standard' ? 78 : 55,
-      fullMark: 100,
-    },
-    {
-      subject: 'Docs',
-      A: repoSpec.files.includes('README.md') && repoSpec.files.includes('CONTRIBUTING.md') ? 100 : 60,
-      fullMark: 100,
-    },
-    {
-      subject: 'Maint',
-      A: repoSpec.automation.dependabot.grouping === 'broad' ? 88 : repoSpec.automation.dependabot.grouping === 'language' ? 74 : 60,
-      fullMark: 100,
-    },
-  ], [repoSpec]);
+  const data = React.useMemo(
+    () => [
+      {
+        subject: "Security",
+        A:
+          repoSpec.governance.securityDefaults.codeScanning &&
+          repoSpec.governance.securityDefaults.secretScanning
+            ? 95
+            : 55,
+        fullMark: 100,
+      },
+      {
+        subject: "Quality",
+        A: repoSpec.governance.statusChecks.includes("test") ? 90 : 50,
+        fullMark: 100,
+      },
+      {
+        subject: "Auto",
+        A:
+          repoSpec.automation.ci.matrixBreadth === "broad"
+            ? 95
+            : repoSpec.automation.ci.matrixBreadth === "standard"
+              ? 78
+              : 55,
+        fullMark: 100,
+      },
+      {
+        subject: "Docs",
+        A:
+          repoSpec.files.includes("README.md") &&
+          repoSpec.files.includes("CONTRIBUTING.md")
+            ? 100
+            : 60,
+        fullMark: 100,
+      },
+      {
+        subject: "Maint",
+        A:
+          repoSpec.automation.dependabot.grouping === "broad"
+            ? 88
+            : repoSpec.automation.dependabot.grouping === "language"
+              ? 74
+              : 60,
+        fullMark: 100,
+      },
+    ],
+    [repoSpec],
+  );
 
   return (
     <Card className="h-[250px] border border-white/10 bg-zinc-900 p-2 flex flex-col">
-      <div className="px-2 pt-2 text-xs font-bold text-zinc-500 uppercase tracking-wider">Project Posture Score</div>
+      <div className="px-2 pt-2 text-xs font-bold text-zinc-500 uppercase tracking-wider">
+        Project Posture Score
+      </div>
       <ResponsiveContainer width="100%" height="100%">
         <RadarChart cx="50%" cy="50%" outerRadius="70%" data={data}>
           <PolarGrid stroke="#3f3f46" />
-          <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10, fill: '#a1a1aa' }} />
-          <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-          <Radar name="Score" dataKey="A" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.5} />
+          <PolarAngleAxis
+            dataKey="subject"
+            tick={{ fontSize: 10, fill: "#a1a1aa" }}
+          />
+          <PolarRadiusAxis
+            angle={30}
+            domain={[0, 100]}
+            tick={false}
+            axisLine={false}
+          />
+          <Radar
+            name="Score"
+            dataKey="A"
+            stroke="#8b5cf6"
+            fill="#8b5cf6"
+            fillOpacity={0.5}
+          />
           <Tooltip
-            contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '8px', color: '#f4f4f5' }}
-            itemStyle={{ color: '#a78bfa' }}
+            contentStyle={{
+              backgroundColor: "#18181b",
+              borderColor: "#27272a",
+              borderRadius: "8px",
+              color: "#f4f4f5",
+            }}
+            itemStyle={{ color: "#a78bfa" }}
           />
         </RadarChart>
       </ResponsiveContainer>
@@ -56,37 +111,69 @@ export const PostureChart = () => {
 export const MaintenanceForecast = () => {
   const repoSpec = useStore((state) => state.repoSpec);
 
-  const totalPrs = repoSpec.automation.dependabot.estimatedMonthlyPrs + (repoSpec.governance.securityDefaults.codeScanning ? 2 : 0);
+  const totalPrs =
+    repoSpec.automation.dependabot.estimatedMonthlyPrs +
+    (repoSpec.governance.securityDefaults.codeScanning ? 2 : 0);
 
-  const data = React.useMemo(() => (
-    [
-      { name: 'Jan', prs: totalPrs },
-      { name: 'Feb', prs: totalPrs + 1 },
-      { name: 'Mar', prs: totalPrs },
-      { name: 'Apr', prs: totalPrs + 1 },
-      { name: 'May', prs: totalPrs },
-      { name: 'Jun', prs: Math.max(0, totalPrs - 1) },
-    ]
-  ), [totalPrs]);
+  const data = React.useMemo(
+    () => [
+      { name: "Jan", prs: totalPrs },
+      { name: "Feb", prs: totalPrs + 1 },
+      { name: "Mar", prs: totalPrs },
+      { name: "Apr", prs: totalPrs + 1 },
+      { name: "May", prs: totalPrs },
+      { name: "Jun", prs: Math.max(0, totalPrs - 1) },
+    ],
+    [totalPrs],
+  );
 
   return (
     <Card className="h-[250px] border border-white/10 bg-zinc-900 p-2 flex flex-col">
       <div className="px-2 pt-2 flex justify-between items-center">
-        <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Bot PR Forecast</span>
+        <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
+          Bot PR Forecast
+        </span>
         <span className="text-[10px] bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded">
           ~{totalPrs} / month
         </span>
       </div>
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#3f3f46" />
-          <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#71717a' }} axisLine={false} tickLine={false} />
-          <YAxis tick={{ fontSize: 10, fill: '#71717a' }} axisLine={false} tickLine={false} />
-          <Tooltip
-            cursor={{ fill: '#27272a' }}
-            contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '8px', color: '#f4f4f5', fontSize: '12px' }}
+        <BarChart
+          data={data}
+          margin={{ top: 20, right: 10, left: -20, bottom: 0 }}
+        >
+          <CartesianGrid
+            strokeDasharray="3 3"
+            vertical={false}
+            stroke="#3f3f46"
           />
-          <Bar dataKey="prs" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={20} />
+          <XAxis
+            dataKey="name"
+            tick={{ fontSize: 10, fill: "#71717a" }}
+            axisLine={false}
+            tickLine={false}
+          />
+          <YAxis
+            tick={{ fontSize: 10, fill: "#71717a" }}
+            axisLine={false}
+            tickLine={false}
+          />
+          <Tooltip
+            cursor={{ fill: "#27272a" }}
+            contentStyle={{
+              backgroundColor: "#18181b",
+              borderColor: "#27272a",
+              borderRadius: "8px",
+              color: "#f4f4f5",
+              fontSize: "12px",
+            }}
+          />
+          <Bar
+            dataKey="prs"
+            fill="#3b82f6"
+            radius={[4, 4, 0, 0]}
+            barSize={20}
+          />
         </BarChart>
       </ResponsiveContainer>
     </Card>

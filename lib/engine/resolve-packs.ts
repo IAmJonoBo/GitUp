@@ -1,11 +1,20 @@
-import { DesignSpec, RepoPackResolution } from '../spec';
-import { CapabilityConflict, PackConflict, PackDefinition, PackEffects } from '../packs';
-import { PACK_REGISTRY, deriveRequirementTags } from '../packs';
+import { DesignSpec, RepoPackResolution } from "../spec";
+import {
+  CapabilityConflict,
+  PackConflict,
+  PackDefinition,
+  PackEffects,
+} from "../packs";
+import { PACK_REGISTRY, deriveRequirementTags } from "../packs";
 
 const sortRecord = (input: Record<string, string>): Record<string, string> =>
-  Object.fromEntries(Object.entries(input).sort(([a], [b]) => a.localeCompare(b)));
+  Object.fromEntries(
+    Object.entries(input).sort(([a], [b]) => a.localeCompare(b)),
+  );
 
-const mergeRecords = (...records: Array<Record<string, string> | undefined>): Record<string, string> => {
+const mergeRecords = (
+  ...records: Array<Record<string, string> | undefined>
+): Record<string, string> => {
   const merged: Record<string, string> = {};
   for (const record of records) {
     if (!record) continue;
@@ -17,13 +26,20 @@ const mergeRecords = (...records: Array<Record<string, string> | undefined>): Re
 const impactFromEffects = (effects: PackEffects): string[] => {
   const impact: string[] = [];
   if (effects.scripts && Object.keys(effects.scripts).length > 0) {
-    impact.push(`scripts: ${Object.keys(effects.scripts).sort().join(', ')}`);
+    impact.push(`scripts: ${Object.keys(effects.scripts).sort().join(", ")}`);
   }
   if (effects.dependencies && Object.keys(effects.dependencies).length > 0) {
-    impact.push(`runtime deps: ${Object.keys(effects.dependencies).sort().join(', ')}`);
+    impact.push(
+      `runtime deps: ${Object.keys(effects.dependencies).sort().join(", ")}`,
+    );
   }
-  if (effects.devDependencies && Object.keys(effects.devDependencies).length > 0) {
-    impact.push(`dev deps: ${Object.keys(effects.devDependencies).sort().join(', ')}`);
+  if (
+    effects.devDependencies &&
+    Object.keys(effects.devDependencies).length > 0
+  ) {
+    impact.push(
+      `dev deps: ${Object.keys(effects.devDependencies).sort().join(", ")}`,
+    );
   }
   return impact;
 };
@@ -31,21 +47,32 @@ const impactFromEffects = (effects: PackEffects): string[] => {
 const resolveEligiblePacks = (designSpec: DesignSpec): PackDefinition[] => {
   const requirementTags = deriveRequirementTags(designSpec);
 
-  return PACK_REGISTRY.filter((pack) => pack.requirements.every((requirement) => requirementTags.has(requirement))).sort(
-    (a, b) => b.priority - a.priority || a.id.localeCompare(b.id),
-  );
+  return PACK_REGISTRY.filter((pack) =>
+    pack.requirements.every((requirement) => requirementTags.has(requirement)),
+  ).sort((a, b) => b.priority - a.priority || a.id.localeCompare(b.id));
 };
 
-type CapabilityCandidate = { pack: PackDefinition; effects: PackEffects; multiOwner: boolean };
+type CapabilityCandidate = {
+  pack: PackDefinition;
+  effects: PackEffects;
+  multiOwner: boolean;
+};
 
-const collectCapabilityOwnership = (eligiblePacks: PackDefinition[], designSpec: DesignSpec) => {
+const collectCapabilityOwnership = (
+  eligiblePacks: PackDefinition[],
+  designSpec: DesignSpec,
+) => {
   const owners = new Map<string, CapabilityCandidate[]>();
 
   for (const pack of eligiblePacks) {
     const effects = pack.resolveEffects(designSpec);
     for (const capability of pack.capabilities) {
       const current = owners.get(capability.name) ?? [];
-      current.push({ pack, effects, multiOwner: capability.multiOwner === true });
+      current.push({
+        pack,
+        effects,
+        multiOwner: capability.multiOwner === true,
+      });
       owners.set(capability.name, current);
     }
   }
@@ -53,14 +80,20 @@ const collectCapabilityOwnership = (eligiblePacks: PackDefinition[], designSpec:
   return owners;
 };
 
-const addConflictEdge = (graph: Map<string, Set<string>>, a: string, b: string) => {
+const addConflictEdge = (
+  graph: Map<string, Set<string>>,
+  a: string,
+  b: string,
+) => {
   if (!graph.has(a)) {
     graph.set(a, new Set());
   }
   graph.get(a)?.add(b);
 };
 
-const createConflictGraph = (eligiblePacks: PackDefinition[]): Map<string, Set<string>> => {
+const createConflictGraph = (
+  eligiblePacks: PackDefinition[],
+): Map<string, Set<string>> => {
   const graph = new Map<string, Set<string>>();
   for (const pack of eligiblePacks) {
     for (const conflict of pack.conflicts) {
@@ -100,17 +133,21 @@ const resolveCapabilityConflicts = (
       const aIsOverridden = a.pack.id === overriddenPackId;
       const bIsOverridden = b.pack.id === overriddenPackId;
       if (aIsOverridden !== bIsOverridden) return aIsOverridden ? -1 : 1;
-      return b.pack.priority - a.pack.priority || a.pack.id.localeCompare(b.pack.id);
+      return (
+        b.pack.priority - a.pack.priority || a.pack.id.localeCompare(b.pack.id)
+      );
     });
 
     if (sorted.every((candidate) => candidate.multiOwner)) {
       const ownersForCapability: string[] = [];
       for (const candidate of sorted) {
-        const conflictWithSelected = [...selectedPackIds].find((selectedPackId) =>
-          conflictGraph.get(candidate.pack.id)?.has(selectedPackId),
+        const conflictWithSelected = [...selectedPackIds].find(
+          (selectedPackId) =>
+            conflictGraph.get(candidate.pack.id)?.has(selectedPackId),
         );
         if (conflictWithSelected) {
-          const selectedEffects = selectedPackEffects.get(conflictWithSelected)!;
+          const selectedEffects =
+            selectedPackEffects.get(conflictWithSelected)!;
           const challengerEffects = candidate.effects;
           capabilityConflicts.push({
             capability,
@@ -154,7 +191,10 @@ const resolveCapabilityConflicts = (
     }
 
     const owner = sorted.find(
-      (candidate) => ![...selectedPackIds].some((selectedPackId) => conflictGraph.get(candidate.pack.id)?.has(selectedPackId)),
+      (candidate) =>
+        ![...selectedPackIds].some((selectedPackId) =>
+          conflictGraph.get(candidate.pack.id)?.has(selectedPackId),
+        ),
     );
 
     if (!owner) {
@@ -205,13 +245,15 @@ const resolveCapabilityConflicts = (
     }
 
     for (const challenger of sorted) {
-      if (challenger.pack.id === owner.pack.id || challenger.multiOwner) continue;
-      const blockedByConflict = conflictGraph.get(challenger.pack.id)?.has(owner.pack.id) ?? false;
+      if (challenger.pack.id === owner.pack.id || challenger.multiOwner)
+        continue;
+      const blockedByConflict =
+        conflictGraph.get(challenger.pack.id)?.has(owner.pack.id) ?? false;
       const ownerImpact = impactFromEffects(owner.effects);
       const challengerImpact = impactFromEffects(challenger.effects);
       const reason = blockedByConflict
         ? `${challenger.pack.id} conflicts with selected owner ${owner.pack.id}.`
-        : `Keeping ${owner.pack.id} retains ${ownerImpact.join('; ') || 'no downstream changes'} and drops ${challenger.pack.id} changes (${challengerImpact.join('; ') || 'no downstream changes'}).`;
+        : `Keeping ${owner.pack.id} retains ${ownerImpact.join("; ") || "no downstream changes"} and drops ${challenger.pack.id} changes (${challengerImpact.join("; ") || "no downstream changes"}).`;
       capabilityConflicts.push({
         capability,
         owner: {
@@ -246,7 +288,9 @@ const resolveCapabilityConflicts = (
   }
 
   return {
-    selectedEffects: [...selectedPackIds].map((packId) => selectedPackEffects.get(packId)!).filter(Boolean),
+    selectedEffects: [...selectedPackIds]
+      .map((packId) => selectedPackEffects.get(packId)!)
+      .filter(Boolean),
     capabilityOwners,
     capabilityConflicts,
     packConflicts,
@@ -261,18 +305,36 @@ export const resolvePacks = (
   const eligiblePacks = resolveEligiblePacks(designSpec);
   const owners = collectCapabilityOwnership(eligiblePacks, designSpec);
   const conflictGraph = createConflictGraph(eligiblePacks);
-  const resolved = resolveCapabilityConflicts(owners, options?.capabilityOwnerOverrides ?? {}, conflictGraph);
+  const resolved = resolveCapabilityConflicts(
+    owners,
+    options?.capabilityOwnerOverrides ?? {},
+    conflictGraph,
+  );
 
-  const scripts = sortRecord(mergeRecords(...resolved.selectedEffects.map((effects) => effects.scripts)));
-  const dependencies = sortRecord(mergeRecords(...resolved.selectedEffects.map((effects) => effects.dependencies)));
-  const devDependencies = sortRecord(mergeRecords(...resolved.selectedEffects.map((effects) => effects.devDependencies)));
+  const scripts = sortRecord(
+    mergeRecords(...resolved.selectedEffects.map((effects) => effects.scripts)),
+  );
+  const dependencies = sortRecord(
+    mergeRecords(
+      ...resolved.selectedEffects.map((effects) => effects.dependencies),
+    ),
+  );
+  const devDependencies = sortRecord(
+    mergeRecords(
+      ...resolved.selectedEffects.map((effects) => effects.devDependencies),
+    ),
+  );
 
   return {
     scripts,
     dependencies,
     devDependencies,
     selectedPacks: resolved.selectedPacks,
-    capabilityOwners: Object.fromEntries(Object.entries(resolved.capabilityOwners).sort(([a], [b]) => a.localeCompare(b))),
+    capabilityOwners: Object.fromEntries(
+      Object.entries(resolved.capabilityOwners).sort(([a], [b]) =>
+        a.localeCompare(b),
+      ),
+    ),
     capabilityConflicts: resolved.capabilityConflicts,
     packConflicts: resolved.packConflicts,
   };
