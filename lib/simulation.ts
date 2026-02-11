@@ -60,6 +60,8 @@ export const createEngineDecisionPayloads = (
   const rankedCandidates = recommendAutomationCandidates(designSpec, repoSpec);
   const [recommendedCandidate, ...alternativeCandidates] = rankedCandidates;
 
+  const governanceImpactSummary = `${repoSpec.governance.artifactModel.rulesetProfile.label} posture enforces ${repoSpec.governance.artifactModel.requiredChecks.checks.length} required checks and ${repoSpec.governance.artifactModel.reviewConstraints.requiredReviewers} reviewer(s).`;
+
   return [
     {
       key: "architecture-normalization",
@@ -81,7 +83,7 @@ export const createEngineDecisionPayloads = (
       stage: "repo-spec",
       title: "Stack Resolution",
       recommendation: `${designSpec.stack.language} + ${designSpec.stack.framework || "Core runtime"}`,
-      why: `Repo pack resolution selected ${designSpec.stack.packageManager} with ${dependencyPosture} and ${repoSpec.files.length} generated files.`,
+      why: `Repo pack resolution selected ${designSpec.stack.packageManager} with ${dependencyPosture} and ${repoSpec.files.length} generated files. ${governanceImpactSummary}`,
       tradeOffs: [
         "Switching package manager later can invalidate lockfiles",
         "Framework-specific conventions reduce portability",
@@ -95,7 +97,7 @@ export const createEngineDecisionPayloads = (
       title: "Publishing Sequence",
       recommendation:
         recommendedCandidate?.label ?? securityRecommendation,
-      why: `Change plan emits ${changePlan.operations.length} operations to realize repository bootstrap and governance automation. Recommended profile scores ${recommendedCandidate?.score ?? "n/a"} using Fit - MaintenanceCost - ComplexityRisk.`,
+      why: `Change plan emits ${changePlan.operations.length} operations to realize repository bootstrap and governance automation. ${governanceImpactSummary} Recommended profile scores ${recommendedCandidate?.score ?? "n/a"} using Fit - MaintenanceCost - ComplexityRisk.`,
       tradeOffs: [
         "More guardrails may slow first merge",
         "Automation requires permissions upfront",

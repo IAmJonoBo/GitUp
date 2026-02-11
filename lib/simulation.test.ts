@@ -67,6 +67,12 @@ describe("simulation builder", () => {
           action.action.endsWith(".render") || action.action.endsWith(".plan"),
       ),
     ).toBe(true);
+    expect(
+      actions.some((action) => action.target === ".github/governance-hints.json"),
+    ).toBe(true);
+    expect(
+      actions.some((action) => action.target === ".github/rulesets/preview.json"),
+    ).toBe(true);
   });
 
   it("applies capability owner overrides to both repo spec and change plan compilation", () => {
@@ -178,9 +184,15 @@ describe("simulation builder", () => {
     ]);
     expect(decisions.every((decision) => decision.why.length > 0)).toBe(true);
 
+    const stackDecision = decisions.find(
+      (decision) => decision.key === "stack-resolution",
+    );
+    expect(stackDecision?.why).toContain("posture enforces");
+
     const publishingDecision = decisions.find(
       (decision) => decision.key === "change-plan-publishing",
     );
+    expect(publishingDecision?.why).toContain("posture enforces");
     expect(publishingDecision?.rankedCandidates).toHaveLength(3);
     expect(publishingDecision?.alternatives).toHaveLength(2);
   });
