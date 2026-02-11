@@ -124,8 +124,10 @@ export const RepoTree = () => {
           {selectedPath ? (
             <div className="min-h-full p-4">
               <Tooltip>
-                <TooltipTrigger type="button" className="w-full text-left bg-transparent p-0 border-0">
-                  <pre className="text-[10px] leading-relaxed font-mono text-foreground/80 whitespace-pre-wrap">{selectedContent}</pre>
+                <TooltipTrigger asChild>
+                  <button type="button" className="w-full text-left bg-transparent p-0 border-0">
+                    <pre className="text-[10px] leading-relaxed font-mono text-foreground/80 whitespace-pre-wrap">{selectedContent}</pre>
+                  </button>
                 </TooltipTrigger>
                 <TooltipContent side="top">Derived from RepoSpec + ChangePlan</TooltipContent>
               </Tooltip>
