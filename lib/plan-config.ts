@@ -13,6 +13,8 @@ const DEFAULT_PLAN_CONFIG: PlanConfig = {
   structure: RepoStructure.POLY,
   type: ProjectType.WEB,
   architecture: 'Standard',
+  noiseBudget: 'medium',
+  governancePosture: 'Team Standard',
   github: {
     topics: [],
     features: {

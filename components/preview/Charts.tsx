@@ -4,15 +4,35 @@ import { useStore } from '../../store';
 import { Card } from '../ui/primitives';
 
 export const PostureChart = () => {
-  const config = useStore((state) => state.config);
+  const repoSpec = useStore((state) => state.repoSpec);
 
   const data = React.useMemo(() => [
-    { subject: 'Security', A: config.security.codeScanning ? 90 : 40, fullMark: 100 },
-    { subject: 'Quality', A: config.quality.testing ? 85 : 30, fullMark: 100 },
-    { subject: 'Auto', A: config.ci.automaticRelease ? 95 : 20, fullMark: 100 },
-    { subject: 'Docs', A: config.docs.readme && config.docs.contributing ? 100 : 50, fullMark: 100 },
-    { subject: 'Maint', A: config.structure === 'Monorepo' ? 60 : 80, fullMark: 100 },
-  ], [config]);
+    {
+      subject: 'Security',
+      A: repoSpec.governance.securityDefaults.codeScanning && repoSpec.governance.securityDefaults.secretScanning ? 95 : 55,
+      fullMark: 100,
+    },
+    {
+      subject: 'Quality',
+      A: repoSpec.governance.statusChecks.includes('test') ? 90 : 50,
+      fullMark: 100,
+    },
+    {
+      subject: 'Auto',
+      A: repoSpec.automation.ci.matrixBreadth === 'broad' ? 95 : repoSpec.automation.ci.matrixBreadth === 'standard' ? 78 : 55,
+      fullMark: 100,
+    },
+    {
+      subject: 'Docs',
+      A: repoSpec.files.includes('README.md') && repoSpec.files.includes('CONTRIBUTING.md') ? 100 : 60,
+      fullMark: 100,
+    },
+    {
+      subject: 'Maint',
+      A: repoSpec.automation.dependabot.grouping === 'broad' ? 88 : repoSpec.automation.dependabot.grouping === 'language' ? 74 : 60,
+      fullMark: 100,
+    },
+  ], [repoSpec]);
 
   return (
     <Card className="h-[250px] border border-white/10 bg-zinc-900 p-2 flex flex-col">
@@ -34,12 +54,9 @@ export const PostureChart = () => {
 };
 
 export const MaintenanceForecast = () => {
-  const config = useStore((state) => state.config);
+  const repoSpec = useStore((state) => state.repoSpec);
 
-  const depUpdateFreq = config.security.dependencyUpdateFrequency;
-  const basePrs = depUpdateFreq === 'daily' ? 20 : depUpdateFreq === 'weekly' ? 4 : 1;
-  const scanningPrs = config.security.codeScanning ? 2 : 0;
-  const totalPrs = basePrs + scanningPrs;
+  const totalPrs = repoSpec.automation.dependabot.estimatedMonthlyPrs + (repoSpec.governance.securityDefaults.codeScanning ? 2 : 0);
 
   const data = React.useMemo(() => (
     [
@@ -48,7 +65,7 @@ export const MaintenanceForecast = () => {
       { name: 'Mar', prs: totalPrs },
       { name: 'Apr', prs: totalPrs + 1 },
       { name: 'May', prs: totalPrs },
-      { name: 'Jun', prs: totalPrs - 1 },
+      { name: 'Jun', prs: Math.max(0, totalPrs - 1) },
     ]
   ), [totalPrs]);
 

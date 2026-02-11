@@ -7,7 +7,7 @@ import { Input, Label, Switch, Button, Badge, Tooltip, TooltipContent, TooltipTr
 import { DecisionCard } from '../app/DecisionCard';
 import { ApplyScreen } from '../app/ApplyScreen';
 import { ConflictResolutionPanel } from '../app/ConflictResolutionPanel';
-import { RepoStructure, ProjectType, DocFramework, DocStyle, TestFramework, E2EFramework, BuildTool, Linter, Formatter, QualityPlatform, Architecture, Builder, DependencyStrategy, PlanConfig } from '../../types';
+import { RepoStructure, ProjectType, DocFramework, DocStyle, TestFramework, E2EFramework, BuildTool, Linter, Formatter, QualityPlatform, Architecture, Builder, DependencyStrategy, PlanConfig, GovernancePosture, NoiseBudgetPreset } from '../../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Shield, Zap, BookOpen, Terminal, Box, Globe, Layout, Server, Monitor, Layers, Package, Gauge, FileText, Users, Lock, RefreshCw, Scan, Info, Edit2, ChevronRight, Star, Cpu, ArrowDownCircle, MessagesSquare, Library, TestTube, Play, Beaker, Hammer, Boxes, Code2, CheckCheck, Languages, AlertTriangle, CheckCircle2, GitMerge, GitPullRequest, ListTodo, MessageSquare, Book, Rocket, ScrollText, Key, GitBranch, Workflow, Cloud, Settings, KeyRound, AppWindow, PlayCircle, Plus, X, Tag, Webhook as WebhookIcon, Bot, FileCode, Anchor, PenTool, LayoutTemplate, type LucideIcon } from 'lucide-react';
 import { cn } from '../../lib/utils';
@@ -36,6 +36,8 @@ const LINTER_OPTIONS: Linter[] = ['ESLint', 'Biome', 'None'];
 const FORMATTER_OPTIONS: Formatter[] = ['Prettier', 'Biome', 'None'];
 const DEPENDENCY_FREQUENCIES: PlanConfig['security']['dependencyUpdateFrequency'][] = ['daily', 'weekly', 'monthly'];
 const ACTION_PERMISSION_OPTIONS: PlanConfig['github']['actions']['permissions'][] = ['all', 'local', 'none'];
+const NOISE_BUDGET_PRESETS: NoiseBudgetPreset[] = ['low', 'medium', 'high'];
+const GOVERNANCE_POSTURES: GovernancePosture[] = ['Relaxed', 'Team Standard', 'Strict'];
 
 // --- Step 1: Basics ---
 const basicsSchema = z.object({
@@ -648,7 +650,7 @@ export const StepCI = () => {
 
 // --- Step 6: Security ---
 export const StepSecurity = () => {
-    const { config, updateConfig } = useStore();
+    const { config, updateConfig, userMode, engineDecisions } = useStore();
 
     return (
         <div className="space-y-6 animate-in slide-in-from-right-8 duration-500">
@@ -659,6 +661,40 @@ export const StepSecurity = () => {
              </div>
 
              {userMode === 'power' && <ConflictResolutionPanel />}
+
+             <div className="p-4 rounded-xl border border-border bg-card space-y-4">
+                 <div className="flex items-center justify-between gap-3">
+                     <div>
+                         <h4 className="text-sm font-semibold text-foreground">Noise Budget</h4>
+                         <p className="text-xs text-muted-foreground">Controls Dependabot grouping/schedule and CI matrix breadth.</p>
+                     </div>
+                     <Badge variant="outline" className="capitalize">{String(config.noiseBudget)}</Badge>
+                 </div>
+                 <div className="flex flex-wrap gap-2">
+                     {NOISE_BUDGET_PRESETS.map((preset) => (
+                         <Badge
+                            key={preset}
+                            variant={config.noiseBudget === preset ? 'default' : 'outline'}
+                            className="cursor-pointer capitalize"
+                            onClick={() => updateConfig({ noiseBudget: preset })}
+                         >
+                           {preset}
+                         </Badge>
+                     ))}
+                 </div>
+                 {userMode === 'power' && (
+                    <div>
+                      <Label className="text-xs mb-2 block">Fine tune noise budget (0-100)</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={typeof config.noiseBudget === 'number' ? config.noiseBudget : 50}
+                        onChange={(e) => updateConfig({ noiseBudget: Number(e.target.value) })}
+                      />
+                    </div>
+                 )}
+             </div>
 
              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                  <div className={cn("p-4 rounded-xl border transition-all", config.security.codeScanning ? "bg-card border-indigo-500/50" : "bg-card border-border")}>
@@ -730,7 +766,7 @@ export const StepSecurity = () => {
 
 // --- Step 7: GitHub Ops ---
 export const StepGitHub = () => {
-    const { config, updateConfig } = useStore();
+    const { config, updateConfig, userMode } = useStore();
     const [newTopic, setNewTopic] = useState('');
 
     const addTopic = (e: React.KeyboardEvent) => {
@@ -840,64 +876,89 @@ export const StepGitHub = () => {
                                     Using GitHub Rulesets for enhanced protection on the default branch.
                                 </div>
 
-                                <div>
-                                    <Label>Default Branch Name</Label>
-                                    <Input 
-                                        value={config.github.branches.default}
-                                        onChange={(e) => updateConfig({ github: { ...config.github, branches: { ...config.github.branches, default: e.target.value } } })}
-                                        className="mt-2"
-                                    />
+                                <div className="p-3 rounded-lg border border-border bg-card">
+                                    <Label className="mb-2 block">Governance Posture</Label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {GOVERNANCE_POSTURES.map((posture) => (
+                                            <Badge
+                                                key={posture}
+                                                variant={config.governancePosture === posture ? 'default' : 'outline'}
+                                                className="cursor-pointer"
+                                                onClick={() => updateConfig({ governancePosture: posture })}
+                                            >
+                                                {posture}
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                    <p className="text-[10px] text-muted-foreground mt-2">{userMode === 'power' ? 'Power mode lets you override detailed branch/ruleset knobs below.' : 'Simple mode applies compiler-driven branch rules, status checks, and security defaults.'}</p>
                                 </div>
-                                
-                                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mt-6 mb-3">Enforcement Rules</h4>
-                                <div className="space-y-2">
-                                    <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-card">
-                                        <div>
-                                            <span className="block text-sm text-foreground">Require Pull Request</span>
-                                            <span className="text-xs text-muted-foreground">Enforce code review before merging</span>
-                                        </div>
-                                        <Switch 
-                                            checked={config.github.branches.protection.requirePr}
-                                            onCheckedChange={(v) => updateConfig({ github: { ...config.github, branches: { ...config.github.branches, protection: { ...config.github.branches.protection, requirePr: v } } } })}
+
+                                {userMode === 'power' ? (
+                                  <>
+                                    <div>
+                                        <Label>Default Branch Name</Label>
+                                        <Input 
+                                            value={config.github.branches.default}
+                                            onChange={(e) => updateConfig({ github: { ...config.github, branches: { ...config.github.branches, default: e.target.value } } })}
+                                            className="mt-2"
                                         />
                                     </div>
-                                    <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-card">
-                                        <div>
-                                            <span className="block text-sm text-foreground">Require Signed Commits</span>
-                                            <span className="text-xs text-muted-foreground">Block unverified signatures</span>
-                                        </div>
-                                        <Switch 
-                                            checked={config.github.branches.protection.requireSignedCommits}
-                                            onCheckedChange={(v) => updateConfig({ github: { ...config.github, branches: { ...config.github.branches, protection: { ...config.github.branches.protection, requireSignedCommits: v } } } })}
-                                        />
+                                    
+                                    <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mt-6 mb-3">Enforcement Rules</h4>
+                                    <div className="space-y-2">
+                                      <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-card">
+                                          <div>
+                                              <span className="block text-sm text-foreground">Require Pull Request</span>
+                                              <span className="text-xs text-muted-foreground">Enforce code review before merging</span>
+                                          </div>
+                                          <Switch 
+                                              checked={config.github.branches.protection.requirePr}
+                                              onCheckedChange={(v) => updateConfig({ github: { ...config.github, branches: { ...config.github.branches, protection: { ...config.github.branches.protection, requirePr: v } } } })}
+                                          />
+                                      </div>
+                                      <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-card">
+                                          <div>
+                                              <span className="block text-sm text-foreground">Require Signed Commits</span>
+                                              <span className="text-xs text-muted-foreground">Block unverified signatures</span>
+                                          </div>
+                                          <Switch 
+                                              checked={config.github.branches.protection.requireSignedCommits}
+                                              onCheckedChange={(v) => updateConfig({ github: { ...config.github, branches: { ...config.github.branches, protection: { ...config.github.branches.protection, requireSignedCommits: v } } } })}
+                                          />
+                                      </div>
+                                      <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-card">
+                                          <div>
+                                              <span className="block text-sm text-foreground">Require Linear History</span>
+                                              <span className="text-xs text-muted-foreground">Prevent merge commits</span>
+                                          </div>
+                                          <Switch 
+                                              checked={config.github.branches.protection.requireLinearHistory}
+                                              onCheckedChange={(v) => updateConfig({ github: { ...config.github, branches: { ...config.github.branches, protection: { ...config.github.branches.protection, requireLinearHistory: v } } } })}
+                                          />
+                                      </div>
+                                      <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-card">
+                                          <div>
+                                              <span className="block text-sm text-foreground">Required Reviewers</span>
+                                          </div>
+                                          <div className="flex items-center gap-2">
+                                              <Button 
+                                                  size="sm" variant="ghost" className="h-6 w-6 p-0"
+                                                  onClick={() => updateConfig({ github: { ...config.github, branches: { ...config.github.branches, protection: { ...config.github.branches.protection, requiredReviewers: Math.max(0, config.github.branches.protection.requiredReviewers - 1) } } } })}
+                                              >-</Button>
+                                              <span className="text-sm w-4 text-center text-foreground">{config.github.branches.protection.requiredReviewers}</span>
+                                              <Button 
+                                                  size="sm" variant="ghost" className="h-6 w-6 p-0"
+                                                  onClick={() => updateConfig({ github: { ...config.github, branches: { ...config.github.branches, protection: { ...config.github.branches.protection, requiredReviewers: Math.min(6, config.github.branches.protection.requiredReviewers + 1) } } } })}
+                                              >+</Button>
+                                          </div>
+                                      </div>
                                     </div>
-                                     <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-card">
-                                        <div>
-                                            <span className="block text-sm text-foreground">Require Linear History</span>
-                                            <span className="text-xs text-muted-foreground">Prevent merge commits</span>
-                                        </div>
-                                        <Switch 
-                                            checked={config.github.branches.protection.requireLinearHistory}
-                                            onCheckedChange={(v) => updateConfig({ github: { ...config.github, branches: { ...config.github.branches, protection: { ...config.github.branches.protection, requireLinearHistory: v } } } })}
-                                        />
-                                    </div>
-                                    <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-card">
-                                        <div>
-                                            <span className="block text-sm text-foreground">Required Reviewers</span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <Button 
-                                                size="sm" variant="ghost" className="h-6 w-6 p-0"
-                                                onClick={() => updateConfig({ github: { ...config.github, branches: { ...config.github.branches, protection: { ...config.github.branches.protection, requiredReviewers: Math.max(0, config.github.branches.protection.requiredReviewers - 1) } } } })}
-                                            >-</Button>
-                                            <span className="text-sm w-4 text-center text-foreground">{config.github.branches.protection.requiredReviewers}</span>
-                                            <Button 
-                                                size="sm" variant="ghost" className="h-6 w-6 p-0"
-                                                onClick={() => updateConfig({ github: { ...config.github, branches: { ...config.github.branches, protection: { ...config.github.branches.protection, requiredReviewers: Math.min(6, config.github.branches.protection.requiredReviewers + 1) } } } })}
-                                            >+</Button>
-                                        </div>
-                                    </div>
-                                </div>
+                                  </>
+                                ) : (
+                                  <div className="p-3 rounded-lg border border-dashed border-border text-xs text-muted-foreground">
+                                    Governance posture controls default branch protections in Simple mode. Switch to Power mode to fine-tune each rule.
+                                  </div>
+                                )}
                              </div>
                         </TabsContent>
 
@@ -1257,6 +1318,40 @@ export const StepReview = () => {
              </div>
 
              {userMode === 'power' && <ConflictResolutionPanel />}
+
+             <div className="p-4 rounded-xl border border-border bg-card space-y-4">
+                 <div className="flex items-center justify-between gap-3">
+                     <div>
+                         <h4 className="text-sm font-semibold text-foreground">Noise Budget</h4>
+                         <p className="text-xs text-muted-foreground">Controls Dependabot grouping/schedule and CI matrix breadth.</p>
+                     </div>
+                     <Badge variant="outline" className="capitalize">{String(config.noiseBudget)}</Badge>
+                 </div>
+                 <div className="flex flex-wrap gap-2">
+                     {NOISE_BUDGET_PRESETS.map((preset) => (
+                         <Badge
+                            key={preset}
+                            variant={config.noiseBudget === preset ? 'default' : 'outline'}
+                            className="cursor-pointer capitalize"
+                            onClick={() => updateConfig({ noiseBudget: preset })}
+                         >
+                           {preset}
+                         </Badge>
+                     ))}
+                 </div>
+                 {userMode === 'power' && (
+                    <div>
+                      <Label className="text-xs mb-2 block">Fine tune noise budget (0-100)</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={typeof config.noiseBudget === 'number' ? config.noiseBudget : 50}
+                        onChange={(e) => updateConfig({ noiseBudget: Number(e.target.value) })}
+                      />
+                    </div>
+                 )}
+             </div>
 
              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {sections.map((s, i) => (
