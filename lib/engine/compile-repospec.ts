@@ -2,82 +2,23 @@ import { DesignSpec, RepoSpec } from '../spec';
 import { normalizeDesignSpec } from './normalize';
 import { resolvePacks } from './resolve-packs';
 
-const toPythonModuleName = (projectName: string): string => {
-  const moduleName = projectName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
-  return moduleName || 'app';
-};
-
-const resolveSharedFiles = (designSpec: DesignSpec): string[] => {
-  const files = ['.github/settings.yml', '.gitignore'];
+const resolveFiles = (designSpec: DesignSpec): string[] => {
+  const files = ['.github/settings.yml', '.gitignore', 'package.json'];
 
   if (designSpec.docs.readme) files.push('README.md');
   if (designSpec.docs.contributing) files.push('CONTRIBUTING.md');
+  if (designSpec.stack.language === 'TypeScript') files.push('tsconfig.json');
+  if (designSpec.quality.linter === 'ESLint') files.push('.eslintrc.json');
   if (designSpec.ci.runTests || designSpec.ci.buildArtifacts) files.push('.github/workflows/ci.yml');
   if (designSpec.security.manageEnv) files.push('.env.example');
 
-  return files;
-};
-
-const resolveTypeScriptFiles = (designSpec: DesignSpec): string[] => {
-  const files = ['package.json', 'tsconfig.json', 'src/index.ts'];
-
-  if (designSpec.quality.linter === 'ESLint') files.push('.eslintrc.json');
-  if (designSpec.quality.formatter === 'Prettier') files.push('.prettierrc.json');
-
-  if (designSpec.quality.testing) {
-    if (designSpec.quality.testFramework === 'Vitest') {
-      files.push('vitest.config.ts', 'src/index.test.ts');
-    }
-
-    if (designSpec.quality.testFramework === 'Jest') {
-      files.push('jest.config.ts', 'src/index.test.ts');
-    }
-  }
-
   if (designSpec.architecture === 'Hexagonal') {
     files.push('src/adapters/http/handler.ts', 'src/domain/entity.ts', 'src/ports/repository.ts');
+  } else {
+    files.push('src/index.ts', 'src/utils.ts');
   }
 
-  return files;
-};
-
-const resolvePythonFiles = (designSpec: DesignSpec): string[] => {
-  const moduleName = toPythonModuleName(designSpec.projectName);
-  const files = ['pyproject.toml', `src/${moduleName}/__init__.py`, `tests/test_${moduleName}.py`, 'tests/conftest.py'];
-
-  if (designSpec.architecture === 'Hexagonal') {
-    files.push(`src/${moduleName}/adapters/http.py`, `src/${moduleName}/domain/entities.py`, `src/${moduleName}/ports/repository.py`);
-  }
-
-  return files;
-};
-
-const resolveRustFiles = (designSpec: DesignSpec): string[] => {
-  if (designSpec.structure === 'Monorepo') {
-    return ['Cargo.toml', 'crates/app/Cargo.toml', 'crates/app/src/main.rs'];
-  }
-
-  return ['Cargo.toml', designSpec.type === 'Library' ? 'src/lib.rs' : 'src/main.rs'];
-};
-
-const resolveLanguageFiles = (designSpec: DesignSpec): string[] => {
-  switch (designSpec.stack.language) {
-    case 'TypeScript':
-      return resolveTypeScriptFiles(designSpec);
-    case 'Python':
-      return resolvePythonFiles(designSpec);
-    case 'Rust':
-      return resolveRustFiles(designSpec);
-    default:
-      return ['package.json'];
-  }
-};
-
-const resolveFiles = (designSpec: DesignSpec): string[] => {
-  const sharedFiles = resolveSharedFiles(designSpec);
-  const languageFiles = resolveLanguageFiles(designSpec);
-
-  return [...sharedFiles, ...languageFiles].sort();
+  return [...files].sort();
 };
 
 const resolveNoiseLevel = (noiseBudget: DesignSpec['noiseBudget']): number => {
