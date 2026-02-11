@@ -9,7 +9,7 @@ export const DiffInterstitial = () => {
   const confirmDiffInterstitial = useStore(
     (state) => state.confirmDiffInterstitial,
   );
-  const setWorkflowPhase = useStore((state) => state.setWorkflowPhase);
+  const stayInPreview = useStore((state) => state.stayInPreview);
 
   if (
     !pendingDiff ||
@@ -66,7 +66,7 @@ export const DiffInterstitial = () => {
         </div>
 
         <div className="flex justify-end gap-2">
-          <Button variant="ghost" onClick={() => setWorkflowPhase("preview")}>
+          <Button variant="ghost" onClick={stayInPreview}>
             Stay in preview
           </Button>
           <Button variant="cyber" onClick={confirmDiffInterstitial}>

@@ -76,3 +76,139 @@ describe("store capability conflict resolution", () => {
     ).toBe(true);
   });
 });
+
+describe("store diff interstitial triggers", () => {
+  afterEach(() => {
+    useStore.getState().reset();
+  });
+
+  it("routes to diff phase for stack updates when diff exists", () => {
+    useStore.getState().updateConfig({
+      stack: {
+        packageManager: "npm",
+      },
+    });
+
+    const state = useStore.getState();
+    expect(state.workflowPhase).toBe("diff");
+    expect(state.diffPromptReason).toEqual({
+      key: "stack",
+      label: "language/stack",
+    });
+    expect(
+      Boolean(
+        state.pendingDiff &&
+          (state.pendingDiff.added.length || state.pendingDiff.removed.length),
+      ),
+    ).toBe(true);
+  });
+
+  it("routes to diff phase for visibility updates when diff exists", () => {
+    useStore.getState().updateConfig({
+      visibility: "private",
+      quality: {
+        testing: false,
+      },
+    });
+
+    const state = useStore.getState();
+    expect(state.workflowPhase).toBe("diff");
+    expect(state.diffPromptReason).toEqual({
+      key: "visibility",
+      label: "repository visibility",
+    });
+  });
+
+  it("routes to diff phase for security updates when diff exists", () => {
+    useStore.getState().updateConfig({
+      security: {
+        codeScanning: false,
+      },
+      quality: {
+        testing: false,
+      },
+    });
+
+    const state = useStore.getState();
+    expect(state.workflowPhase).toBe("diff");
+    expect(state.diffPromptReason).toEqual({
+      key: "security",
+      label: "security posture",
+    });
+  });
+
+  it("routes to diff phase for preset updates when diff exists", () => {
+    useStore.getState().applyPreset({
+      config: {
+        stack: {
+          packageManager: "npm",
+        },
+      },
+    });
+
+    const state = useStore.getState();
+    expect(state.workflowPhase).toBe("diff");
+    expect(state.diffPromptReason).toEqual({
+      key: "preset",
+      label: "preset selection",
+    });
+  });
+
+  it("clears stale diff prompt reason when no diff is generated", () => {
+    useStore.getState().updateConfig({
+      visibility: "private",
+      quality: {
+        testing: false,
+      },
+    });
+    expect(useStore.getState().diffPromptReason?.key).toBe("visibility");
+
+    useStore.getState().updateConfig({ visibility: "private" });
+
+    const state = useStore.getState();
+    expect(state.workflowPhase).toBe("diff");
+    expect(state.pendingDiff?.added).toHaveLength(0);
+    expect(state.pendingDiff?.removed).toHaveLength(0);
+    expect(state.diffPromptReason).toBeNull();
+  });
+
+  it("keeps phase unchanged for no-op updates that are not trigger keys", () => {
+    useStore.getState().setWorkflowPhase("preview");
+    useStore.getState().updateConfig({ projectName: "my-awesome-project" });
+
+    const state = useStore.getState();
+    expect(state.workflowPhase).toBe("preview");
+    expect(state.pendingDiff?.added).toHaveLength(0);
+    expect(state.pendingDiff?.removed).toHaveLength(0);
+    expect(state.diffPromptReason).toBeNull();
+  });
+
+  it("uses consistent phase transitions for stay and accept actions", () => {
+    useStore.getState().updateConfig({
+      visibility: "private",
+      quality: {
+        testing: false,
+      },
+    });
+
+    useStore.getState().stayInPreview();
+
+    let state = useStore.getState();
+    expect(state.workflowPhase).toBe("preview");
+    expect(state.pendingDiff).toBeNull();
+    expect(state.diffPromptReason).toBeNull();
+
+    useStore.getState().updateConfig({
+      security: { codeScanning: false },
+      quality: {
+        testing: false,
+      },
+    });
+    useStore.getState().confirmDiffInterstitial();
+
+    state = useStore.getState();
+    expect(state.workflowPhase).toBe("explain");
+    expect(state.pendingDiff).toBeNull();
+    expect(state.diffPromptReason).toBeNull();
+  });
+});
