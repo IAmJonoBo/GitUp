@@ -1,7 +1,8 @@
 import { create } from 'zustand';
-import { PlanConfig, PlanConfigPatch, Preset, SimulationLogEntry } from './types';
+import { ChangePlan, DesignSpec, PlanConfig, PlanConfigPatch, Preset, RepoSpec, SimulationLogEntry } from './types';
 import { FINAL_WIZARD_STEP, applyPresetConfig, createDefaultPlanConfig, mergePlanConfig } from './lib/plan-config';
-import { buildSimulationSteps, SIMULATION_TICK_MS } from './lib/simulation';
+import { SIMULATION_TICK_MS, compileDesignSpecToChangePlan, renderChangePlanSimulationLog } from './lib/simulation';
+import { compileRepoSpec } from './lib/engine/compile-repospec';
 
 export type UserMode = 'basic' | 'power';
 export type AppView = 'wizard' | 'presets' | 'settings' | 'help' | 'export';
@@ -9,6 +10,10 @@ export type AppView = 'wizard' | 'presets' | 'settings' | 'help' | 'export';
 interface AppState {
   step: number;
   maxStepVisited: number;
+  designSpec: DesignSpec;
+  repoSpec: RepoSpec;
+  changePlan: ChangePlan;
+  // Backward compatibility for current UI until all consumers migrate.
   config: PlanConfig;
   userMode: UserMode;
   currentView: AppView;
@@ -40,10 +45,19 @@ const clearSimulationTimer = () => {
   simulationTimer = null;
 };
 
+const createCompiledState = (designSpec: DesignSpec) => ({
+  designSpec,
+  config: designSpec,
+  repoSpec: compileRepoSpec(designSpec),
+  changePlan: compileDesignSpecToChangePlan(designSpec),
+});
+
+const createInitialState = () => createCompiledState(createDefaultPlanConfig());
+
 export const useStore = create<AppState>((set, get) => ({
+  ...createInitialState(),
   step: 0,
   maxStepVisited: 0,
-  config: createDefaultPlanConfig(),
   userMode: 'basic',
   currentView: 'wizard',
   isSimulating: false,
@@ -63,13 +77,11 @@ export const useStore = create<AppState>((set, get) => ({
   toggleMobilePreview: (isOpen) => set({ mobilePreviewOpen: isOpen }),
 
   updateConfig: (updates) =>
-    set((state) => ({
-      config: mergePlanConfig(state.config, updates),
-    })),
+    set((state) => createCompiledState(mergePlanConfig(state.designSpec, updates))),
 
   applyPreset: (presetConfig) =>
     set(() => ({
-      config: applyPresetConfig(presetConfig),
+      ...createCompiledState(applyPresetConfig(presetConfig)),
       currentView: 'wizard',
       step: FINAL_WIZARD_STEP,
       maxStepVisited: FINAL_WIZARD_STEP,
@@ -77,7 +89,7 @@ export const useStore = create<AppState>((set, get) => ({
 
   startSimulation: () => {
     clearSimulationTimer();
-    const steps = buildSimulationSteps(get().config);
+    const steps = renderChangePlanSimulationLog(get().changePlan);
     set({ isSimulating: true, simulationLog: [] });
 
     let index = 0;
@@ -100,7 +112,7 @@ export const useStore = create<AppState>((set, get) => ({
     set({
       step: 0,
       maxStepVisited: 0,
-      config: createDefaultPlanConfig(),
+      ...createInitialState(),
       isSimulating: false,
       simulationLog: [],
       currentView: 'wizard',
