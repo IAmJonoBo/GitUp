@@ -11,6 +11,7 @@ import {
 import { PublishTarget, publishFromChangePlan } from "./publisher";
 import { compileRepoSpec } from "./engine/compile-repospec";
 import { materializeChangePlan } from "./engine/materialize-changeplan";
+import { recommendAutomationCandidates } from "./engine/recommend";
 
 export const SIMULATION_TICK_MS = 400;
 
@@ -56,6 +57,9 @@ export const createEngineDecisionPayloads = (
       ? "comprehensive repository scanning enabled"
       : "incremental scanning posture enabled";
 
+  const rankedCandidates = recommendAutomationCandidates(designSpec, repoSpec);
+  const [recommendedCandidate, ...alternativeCandidates] = rankedCandidates;
+
   return [
     {
       key: "architecture-normalization",
@@ -89,13 +93,21 @@ export const createEngineDecisionPayloads = (
       key: "change-plan-publishing",
       stage: "change-plan",
       title: "Publishing Sequence",
-      recommendation: securityRecommendation,
-      why: `Change plan emits ${changePlan.operations.length} operations to realize repository bootstrap and governance automation.`,
+      recommendation:
+        recommendedCandidate?.label ?? securityRecommendation,
+      why: `Change plan emits ${changePlan.operations.length} operations to realize repository bootstrap and governance automation. Recommended profile scores ${recommendedCandidate?.score ?? "n/a"} using Fit - MaintenanceCost - ComplexityRisk.`,
       tradeOffs: [
         "More guardrails may slow first merge",
         "Automation requires permissions upfront",
       ],
-      alternatives: ["Minimal checks only", "Manual branch protections"],
+      alternatives: alternativeCandidates.map((candidate) => candidate.label),
+      rankedCandidates: rankedCandidates.map((candidate) => ({
+        label: candidate.label,
+        score: candidate.score,
+        botPrsPerMonth: candidate.botPrsPerMonth,
+        ciMinutesProxy: candidate.ciMinutesProxy,
+        securityPostureNote: candidate.securityPostureNote,
+      })),
       confidence: "High",
     },
   ];

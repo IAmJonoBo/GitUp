@@ -41,6 +41,45 @@ export const DecisionCard: React.FC<{ decision: EngineDecisionPayload }> = ({
               </p>
             </div>
 
+            {decision.rankedCandidates?.length ? (
+              <motion.div
+                className="bg-zinc-950/50 p-3 rounded-lg border border-emerald-500/20"
+                whileHover={{
+                  scale: 1.01,
+                  borderColor: "rgba(16, 185, 129, 0.45)",
+                  backgroundColor: "rgba(16, 185, 129, 0.05)",
+                }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              >
+                <h5 className="text-xs font-semibold text-emerald-300 mb-2">
+                  Ranked Recommendations
+                </h5>
+                <div className="space-y-2">
+                  {decision.rankedCandidates.map((candidate, i) => (
+                    <div
+                      key={candidate.label}
+                      className="rounded border border-white/5 bg-zinc-900/70 p-2"
+                    >
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs text-zinc-100 font-medium">
+                          {i === 0 ? "Recommended" : `Alternative ${i}`}: {candidate.label}
+                        </p>
+                        <span className="text-[11px] text-emerald-300">
+                          Score {candidate.score}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-[11px] text-zinc-400">
+                        ~{candidate.botPrsPerMonth} bot PRs/mo • {candidate.ciMinutesProxy} CI-min proxy
+                      </p>
+                      <p className="mt-1 text-[11px] text-zinc-500">
+                        {candidate.securityPostureNote}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            ) : null}
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <motion.div
                 className="bg-zinc-950/50 p-3 rounded-lg border border-white/5"

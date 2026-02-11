@@ -1,6 +1,7 @@
 import { DesignSpec, RepoSpec } from "../spec";
 import { normalizeDesignSpec } from "./normalize";
 import { resolvePacks } from "./resolve-packs";
+import { resolveAutomationFromNoise, resolveNoiseLevel } from "./recommend";
 
 const resolveFiles = (designSpec: DesignSpec): string[] => {
   const files = [".github/settings.yml", ".gitignore", "package.json"];
@@ -26,65 +27,8 @@ const resolveFiles = (designSpec: DesignSpec): string[] => {
   return [...files].sort();
 };
 
-const resolveNoiseLevel = (noiseBudget: DesignSpec["noiseBudget"]): number => {
-  if (typeof noiseBudget === "number" && Number.isFinite(noiseBudget)) {
-    return Math.max(0, Math.min(100, noiseBudget));
-  }
-
-  switch (noiseBudget) {
-    case "low":
-      return 20;
-    case "high":
-      return 80;
-    case "medium":
-    default:
-      return 50;
-  }
-};
-
-const compileAutomation = (designSpec: DesignSpec): RepoSpec["automation"] => {
-  const noiseLevel = resolveNoiseLevel(designSpec.noiseBudget);
-
-  if (noiseLevel <= 33) {
-    return {
-      dependabot: {
-        schedule: "monthly",
-        grouping: "broad",
-        estimatedMonthlyPrs: 2,
-      },
-      ci: {
-        matrixBreadth: "minimal",
-        dimensions: ["node-lts"],
-      },
-    };
-  }
-
-  if (noiseLevel >= 67) {
-    return {
-      dependabot: {
-        schedule: "daily",
-        grouping: "none",
-        estimatedMonthlyPrs: 24,
-      },
-      ci: {
-        matrixBreadth: "broad",
-        dimensions: ["node-lts", "node-current", "ubuntu", "windows"],
-      },
-    };
-  }
-
-  return {
-    dependabot: {
-      schedule: "weekly",
-      grouping: "language",
-      estimatedMonthlyPrs: 6,
-    },
-    ci: {
-      matrixBreadth: "standard",
-      dimensions: ["node-lts", "ubuntu"],
-    },
-  };
-};
+const compileAutomation = (designSpec: DesignSpec): RepoSpec["automation"] =>
+  resolveAutomationFromNoise(resolveNoiseLevel(designSpec.noiseBudget));
 
 const compileGovernance = (
   designSpec: DesignSpec,
