@@ -1,5 +1,5 @@
 import { ChangeOperation, ChangePlan, ChangePlanDiff, DesignSpec, EngineDecisionPayload, PublisherAction, RepoSpec, SimulationLogEntry } from '../types';
-import { publishFromChangePlan } from './publisher';
+import { PublishTarget, publishFromChangePlan } from './publisher';
 import { compileRepoSpec } from './engine/compile-repospec';
 import { materializeChangePlan } from './engine/materialize-changeplan';
 
@@ -74,7 +74,7 @@ export const mapChangePlanToPublisherActions = (
   designSpec: DesignSpec,
   repoSpec: RepoSpec,
   changePlan: ChangePlan,
-  options?: { dryRun?: boolean; userMode?: 'basic' | 'power' },
+  options?: { dryRun?: boolean; userMode?: 'basic' | 'power'; target?: PublishTarget },
 ): PublisherAction[] => publishFromChangePlan(designSpec, repoSpec, changePlan, options);
 
 export const renderChangePlanSimulationLog = (changePlan: ChangePlan): SimulationLogEntry[] =>

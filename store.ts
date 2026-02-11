@@ -4,6 +4,7 @@ import { resolvePresetBundlesToPatch } from './lib/packs';
 import { FINAL_WIZARD_STEP, applyPresetConfig, createDefaultPlanConfig, mergePlanConfig } from './lib/plan-config';
 import { SIMULATION_TICK_MS, buildChangePlanDiff, compileDesignSpecToChangePlan, createEngineDecisionPayloads, mapChangePlanToPublisherActions, renderChangePlanSimulationLog } from './lib/simulation';
 import { compileRepoSpec } from './lib/engine/compile-repospec';
+import { PublishTarget } from './lib/publisher';
 
 export type UserMode = 'basic' | 'power';
 export type AppView = 'wizard' | 'presets' | 'settings' | 'help' | 'export';
@@ -28,6 +29,7 @@ interface AppState {
   workflowPhase: WorkflowPhase;
   engineDecisions: EngineDecisionPayload[];
   publisherActions: PublisherAction[];
+  publishTarget: PublishTarget;
   // Backward compatibility for current UI until all consumers migrate.
   config: PlanConfig;
   userMode: UserMode;
@@ -41,6 +43,7 @@ interface AppState {
   capabilityOwnerOverrides: Record<string, string>;
   setStep: (step: number) => void;
   setUserMode: (mode: UserMode) => void;
+  setPublishTarget: (target: PublishTarget) => void;
   setCurrentView: (view: AppView) => void;
   setWorkflowPhase: (phase: WorkflowPhase) => void;
   confirmDiffInterstitial: () => void;
@@ -69,6 +72,7 @@ const createCompiledState = (
   previousPlan?: ChangePlan,
   userMode: UserMode = 'basic',
   capabilityOwnerOverrides: Record<string, string> = {},
+  publishTarget: PublishTarget = 'local',
 ) => {
   const repoSpec = compileRepoSpec(designSpec, { capabilityOwnerOverrides });
   const changePlan = compileDesignSpecToChangePlan(designSpec, { capabilityOwnerOverrides });
@@ -81,11 +85,12 @@ const createCompiledState = (
     previousChangePlan: previousPlan ?? changePlan,
     pendingDiff: previousPlan ? buildChangePlanDiff(previousPlan, changePlan) : null,
     engineDecisions: createEngineDecisionPayloads(designSpec, repoSpec, changePlan),
-    publisherActions: mapChangePlanToPublisherActions(designSpec, repoSpec, changePlan, { userMode }),
+    publisherActions: mapChangePlanToPublisherActions(designSpec, repoSpec, changePlan, { userMode, target: publishTarget }),
+    publishTarget,
   };
 };
 
-const createInitialState = () => createCompiledState(createDefaultPlanConfig(), undefined, 'basic', {});
+const createInitialState = () => createCompiledState(createDefaultPlanConfig(), undefined, 'basic', {}, 'local');
 
 export const useStore = create<AppState>((set, get) => ({
   ...createInitialState(),
@@ -101,6 +106,7 @@ export const useStore = create<AppState>((set, get) => ({
   reducedMotion: false,
   capabilityOwnerOverrides: {},
   workflowPhase: 'preview',
+  diffPromptReason: null,
 
   setStep: (step) =>
     set((state) => ({
@@ -110,7 +116,18 @@ export const useStore = create<AppState>((set, get) => ({
   setUserMode: (mode) =>
     set((state) => ({
       userMode: mode,
-      publisherActions: mapChangePlanToPublisherActions(state.designSpec, state.repoSpec, state.changePlan, { userMode: mode }),
+      publisherActions: mapChangePlanToPublisherActions(state.designSpec, state.repoSpec, state.changePlan, {
+        userMode: mode,
+        target: state.publishTarget,
+      }),
+    })),
+  setPublishTarget: (target) =>
+    set((state) => ({
+      publishTarget: target,
+      publisherActions: mapChangePlanToPublisherActions(state.designSpec, state.repoSpec, state.changePlan, {
+        userMode: state.userMode,
+        target,
+      }),
     })),
   setCurrentView: (view) => set({ currentView: view }),
   setWorkflowPhase: (phase) => set({ workflowPhase: phase }),
@@ -120,7 +137,7 @@ export const useStore = create<AppState>((set, get) => ({
   updateConfig: (updates) =>
     set((state) => {
       const nextSpec = mergePlanConfig(state.designSpec, updates);
-      const compiled = createCompiledState(nextSpec, state.changePlan, state.userMode, state.capabilityOwnerOverrides);
+      const compiled = createCompiledState(nextSpec, state.changePlan, state.userMode, state.capabilityOwnerOverrides, state.publishTarget);
       const reason =
         updates.visibility !== undefined
           ? { key: 'visibility' as const, label: 'repository visibility' }
@@ -141,7 +158,7 @@ export const useStore = create<AppState>((set, get) => ({
     set((state) => {
       const bundlePatch = resolvePresetBundlesToPatch(preset.bundleIds ?? []);
       const presetPatch = { ...bundlePatch, ...(preset.config ?? {}) };
-      const compiled = createCompiledState(applyPresetConfig(presetPatch), state.changePlan, state.userMode, state.capabilityOwnerOverrides);
+      const compiled = createCompiledState(applyPresetConfig(presetPatch), state.changePlan, state.userMode, state.capabilityOwnerOverrides, state.publishTarget);
       const hasDiff = Boolean(compiled.pendingDiff?.added.length || compiled.pendingDiff?.removed.length);
 
       return {
@@ -209,7 +226,7 @@ export const useStore = create<AppState>((set, get) => ({
         ...state.capabilityOwnerOverrides,
         [capability]: ownerPackId,
       };
-      const compiled = createCompiledState(state.designSpec, state.changePlan, state.userMode, capabilityOwnerOverrides);
+      const compiled = createCompiledState(state.designSpec, state.changePlan, state.userMode, capabilityOwnerOverrides, state.publishTarget);
 
       return {
         ...compiled,
