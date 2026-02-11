@@ -34,3 +34,9 @@ export interface CapabilityConflict {
   challenger: CapabilityConflictCandidate;
   downstreamImpact: string;
 }
+
+export interface PackConflict {
+  winnerPackId: string;
+  droppedPackId: string;
+  reason: string;
+}
